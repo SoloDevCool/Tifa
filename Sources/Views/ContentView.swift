@@ -27,6 +27,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
     case mysql = "MySQL"
     case postgres = "PostgreSQL"
     case redis = "Redis"
+    case mongodb = "MongoDB"
     case nvm = "NVM"
     case system = "系统监控"
     case env = "环境变量"
@@ -41,6 +42,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
         case .mysql: return "cylinder"
         case .postgres: return "externaldrive"
         case .redis: return "arrow.left.arrow.right"
+        case .mongodb: return "cylinder.split.3x1"
         case .nvm: return "chevron.left.forwardslash.chevron.right"
         case .system: return "chart.bar"
         case .env: return "gearshape.2"
@@ -51,7 +53,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
         switch self {
         case .system, .homebrew, .env: return .basic
         case .rvm, .pyenv, .nvm: return .language
-        case .mysql, .postgres, .redis: return .database
+        case .mysql, .postgres, .redis, .mongodb: return .database
         }
     }
     
@@ -178,6 +180,22 @@ enum NVMTab: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - MongoDB 子菜单
+
+enum MongoDbTab: String, CaseIterable, Identifiable {
+    case databases = "数据库"
+    case settings = "设置"
+    
+    var id: String { rawValue }
+    
+    var icon: String {
+        switch self {
+        case .databases: return "cylinder.split.3x1"
+        case .settings: return "gear"
+        }
+    }
+}
+
 // MARK: - MySQL 子菜单
 
 enum MySQLTab: String, CaseIterable, Identifiable {
@@ -205,6 +223,7 @@ struct ContentView: View {
     @State private var selectedPyenvTab: PyenvTab = .versions
     @State private var selectedPostgresTab: PostgresTab = .databases
     @State private var selectedRedisTab: RedisTab = .keys
+    @State private var selectedMongoDbTab: MongoDbTab = .databases
     @State private var selectedNVMTab: NVMTab = .versions
     
     var body: some View {
@@ -225,8 +244,8 @@ struct ContentView: View {
         }
         .frame(minWidth: 1000, minHeight: 600)
         .overlay {
-            if homebrewService.isLoading || RVMService.shared.isLoading || MySQLService.shared.isLoading || PyenvService.shared.isLoading || PostgresService.shared.isLoading || NvmService.shared.isLoading {
-                LoadingOverlay(message: homebrewService.isLoading ? homebrewService.loadingMessage : (RVMService.shared.isLoading ? RVMService.shared.loadingMessage : (MySQLService.shared.isLoading ? MySQLService.shared.loadingMessage : (PyenvService.shared.isLoading ? PyenvService.shared.loadingMessage : PostgresService.shared.loadingMessage))))
+            if homebrewService.isLoading || RVMService.shared.isLoading || MySQLService.shared.isLoading || PyenvService.shared.isLoading || PostgresService.shared.isLoading || RedisService.shared.isLoading || NvmService.shared.isLoading || MongoDbService.shared.isLoading {
+                LoadingOverlay(message: homebrewService.isLoading ? homebrewService.loadingMessage : (RVMService.shared.isLoading ? RVMService.shared.loadingMessage : (MySQLService.shared.isLoading ? MySQLService.shared.loadingMessage : (PyenvService.shared.isLoading ? PyenvService.shared.loadingMessage : (PostgresService.shared.isLoading ? PostgresService.shared.loadingMessage : (RedisService.shared.isLoading ? RedisService.shared.loadingMessage : (NvmService.shared.isLoading ? NvmService.shared.loadingMessage : MongoDbService.shared.loadingMessage)))))))
             }
         }
         .alert("错误", isPresented: .constant(homebrewService.lastError != nil)) {
@@ -334,6 +353,14 @@ struct ContentView: View {
                     }
                 }
                 .listStyle(.sidebar)
+            } else if selectedCategory == .mongodb {
+                List(selection: $selectedMongoDbTab) {
+                    ForEach(MongoDbTab.allCases) { tab in
+                        Label(tab.rawValue, systemImage: tab.icon)
+                            .tag(tab)
+                    }
+                }
+                .listStyle(.sidebar)
             } else if selectedCategory == .nvm {
                 List(selection: $selectedNVMTab) {
                     ForEach(NVMTab.allCases) { tab in
@@ -411,6 +438,13 @@ struct ContentView: View {
                 RedisView()
             case .settings:
                 RedisSettingsView()
+            }
+        case .mongodb:
+            switch selectedMongoDbTab {
+            case .databases:
+                MongoDbView()
+            case .settings:
+                MongoDbSettingsView()
             }
         case .nvm:
             switch selectedNVMTab {
