@@ -9,6 +9,15 @@ struct MySQLDatabase: Identifiable, Hashable {
     let charset: String
 }
 
+/// MySQL 安装版本信息
+struct MySQLVersionInfo: Identifiable, Hashable {
+    let id: String          // formula 名称，如 "mysql@8.0"
+    let displayName: String  // 显示名，如 "MySQL 8.0"
+    let formula: String      // brew formula，如 "mysql@8.0"
+    let installed: Bool
+    let linked: Bool         // 当前是否为活跃版本
+}
+
 /// MySQL 服务 - 管理 MySQL/MariaDB
 @MainActor
 class MySQLService: ObservableObject {
@@ -18,6 +27,21 @@ class MySQLService: ObservableObject {
     @Published var isLoading = false
     @Published var loadingMessage = ""
     @Published var lastError: String?
+    
+    /// 所有可安装的 MySQL 版本
+    static let availableVersions: [(name: String, formula: String)] = [
+        ("MySQL 9.x（最新）", "mysql"),
+        ("MySQL 8.4", "mysql@8.4"),
+        ("MySQL 8.0", "mysql@8.0"),
+        ("MySQL 5.7", "mysql@5.7"),
+        ("MariaDB", "mariadb"),
+    ]
+    
+    /// 当前活跃版本（linked）
+    @Published var activeVersion: String = ""
+    
+    /// 所有已安装版本信息
+    @Published var installedVersions: [MySQLVersionInfo] = []
     
     /// brew 可执行文件绝对路径
     private var brewPath: String {
@@ -52,10 +76,16 @@ class MySQLService: ObservableObject {
     
     /// MySQL 服务名称（brew services 使用的名称）
     private var mysqlServiceName: String? {
+        // 优先使用当前活跃版本
+        if !activeVersion.isEmpty {
+            let brewPrefix = FileManager.default.fileExists(atPath: "/opt/homebrew") ? "/opt/homebrew" : "/usr/local"
+            if FileManager.default.fileExists(atPath: "\(brewPrefix)/opt/\(activeVersion)") {
+                return activeVersion
+            }
+        }
+        // 回退到检测
         let names = ["mysql", "mariadb", "mysql@5.7", "mysql@8.0", "mysql@8.4"]
-        _ = NSHomeDirectory()
         let brewPrefix = FileManager.default.fileExists(atPath: "/opt/homebrew") ? "/opt/homebrew" : "/usr/local"
-        
         for name in names {
             if FileManager.default.fileExists(atPath: "\(brewPrefix)/opt/\(name)") {
                 return name
@@ -82,6 +112,183 @@ class MySQLService: ObservableObject {
         }
         env["HOME"] = NSHomeDirectory()
         return env
+    }
+    
+    // MARK: - 版本管理
+    
+    /// 检测所有已安装的 MySQL 版本及活跃版本
+    func detectInstalledVersions() async {
+        let brew = brewPath
+        let brewPrefix = FileManager.default.fileExists(atPath: "/opt/homebrew") ? "/opt/homebrew" : "/usr/local"
+        
+        // 通过 brew list 获取已安装的 formula
+        let listResult = await executeCommand(executable: brew, arguments: ["list", "--formula"])
+        let installedFormulas: Set<String>
+        if case .success(let output) = listResult {
+            installedFormulas = Set(output.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty })
+        } else {
+            installedFormulas = []
+        }
+        
+        // 通过检查 bin/mysql 的 symlink 目标判断活跃版本
+        let mysqlBinPath = "\(brewPrefix)/bin/mysql"
+        var linkedFormula = ""
+        if let dest = try? FileManager.default.destinationOfSymbolicLink(atPath: mysqlBinPath) {
+            // dest 类似 "../Cellar/mysql@8.0/8.0.45_1/bin/mysql"
+            // 或 "../Cellar/mysql/9.6.0/bin/mysql"
+            for ver in Self.availableVersions {
+                if dest.contains("/\(ver.formula)/") {
+                    linkedFormula = ver.formula
+                    break
+                }
+            }
+        }
+        
+        // 如果 bin/mysql 不是 symlink 或无匹配，检查 opt 目录下哪个版本有 link
+        if linkedFormula.isEmpty {
+            for ver in Self.availableVersions {
+                let optPath = "\(brewPrefix)/opt/\(ver.formula)"
+                let binPath = "\(optPath)/bin/mysql"
+                // 检查 opt/{formula} 存在且 bin/mysql 可执行（说明该 keg 被选中）
+                if installedFormulas.contains(ver.formula) && FileManager.default.isExecutableFile(atPath: binPath) {
+                    linkedFormula = ver.formula
+                    break
+                }
+            }
+        }
+        
+        var versions: [MySQLVersionInfo] = []
+        for ver in Self.availableVersions {
+            let formula = ver.formula
+            let installed = installedFormulas.contains(formula)
+            let linked = (formula == linkedFormula)
+            
+            versions.append(MySQLVersionInfo(
+                id: formula,
+                displayName: ver.name,
+                formula: formula,
+                installed: installed,
+                linked: linked
+            ))
+        }
+        
+        installedVersions = versions
+        activeVersion = linkedFormula
+    }
+    
+    /// 安装指定版本
+    func installVersion(formula: String, onOutput: @escaping @MainActor (String) -> Void) async -> OperationResult {
+        let brew = brewPath
+        
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let process = Process()
+                let stdoutPipe = Pipe()
+                let stderrPipe = Pipe()
+                
+                process.executableURL = URL(fileURLWithPath: brew)
+                process.arguments = ["install", formula]
+                process.environment = ProcessInfo.processInfo.environment
+                process.standardOutput = stdoutPipe
+                process.standardError = stderrPipe
+                
+                let stdoutHandle = stdoutPipe.fileHandleForReading
+                let stderrHandle = stderrPipe.fileHandleForReading
+                
+                func appendOutput(_ text: String) {
+                    let trimmed = text.trimmingCharacters(in: .newlines)
+                    guard !trimmed.isEmpty else { return }
+                    Task { @MainActor in onOutput(trimmed + "\n") }
+                }
+                
+                stdoutHandle.readabilityHandler = { handle in
+                    let data = handle.availableData
+                    guard let str = String(data: data, encoding: .utf8), !str.isEmpty else { return }
+                    appendOutput(str)
+                }
+                stderrHandle.readabilityHandler = { handle in
+                    let data = handle.availableData
+                    guard let str = String(data: data, encoding: .utf8), !str.isEmpty else { return }
+                    appendOutput(str)
+                }
+                
+                do {
+                    try process.run()
+                    process.waitUntilExit()
+                    
+                    stdoutHandle.readabilityHandler = nil
+                    stderrHandle.readabilityHandler = nil
+                    
+                    // 读取残余数据
+                    let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+                    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+                    let stdout = String(data: stdoutData, encoding: .utf8) ?? ""
+                    let stderr = String(data: stderrData, encoding: .utf8) ?? ""
+                    
+                    if !stdout.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        appendOutput(stdout)
+                    }
+                    if !stderr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        appendOutput(stderr)
+                    }
+                    
+                    if process.terminationStatus == 0 {
+                        Task { @MainActor in
+                            appendOutput("\n✅ \(formula) 安装成功")
+                            await self.detectInstalledVersions()
+                        }
+                        continuation.resume(returning: .success(stdout))
+                    } else {
+                        Task { @MainActor in appendOutput("\n❌ 安装失败") }
+                        let error = stderr.isEmpty ? stdout : stderr
+                        continuation.resume(returning: .failure(error.isEmpty ? "安装失败 (exit code \(process.terminationStatus))" : error))
+                    }
+                } catch {
+                    Task { @MainActor in appendOutput("\n❌ 无法启动 brew: \(error.localizedDescription)") }
+                    continuation.resume(returning: .failure("无法启动 brew: \(error.localizedDescription)"))
+                }
+            }
+        }
+    }
+    
+    /// 切换活跃版本（unlink 当前 + link 新版本）
+    func switchVersion(to formula: String) async -> OperationResult {
+        // 先停止当前服务
+        if let current = mysqlServiceName {
+            _ = await executeCommandWithProgress(executable: brewPath, arguments: ["services", "stop", current])
+        }
+        
+        // unlink 所有已安装的 MySQL 版本
+        for ver in installedVersions where ver.installed {
+            _ = await executeCommand(executable: brewPath, arguments: ["unlink", ver.formula])
+        }
+        
+        // link 新版本
+        let result = await executeCommandWithProgress(executable: brewPath, arguments: ["link", formula, "--force", "--overwrite"])
+        
+        if case .success = result {
+            await detectInstalledVersions()
+            return .success("已切换到 \(formula)")
+        }
+        return result
+    }
+    
+    /// 卸载指定版本
+    func uninstallVersion(formula: String) async -> OperationResult {
+        // 先停止服务（如果是当前版本）
+        if formula == activeVersion, let serviceName = mysqlServiceName {
+            _ = await executeCommandWithProgress(executable: brewPath, arguments: ["services", "stop", serviceName])
+            // unlink
+            _ = await executeCommand(executable: brewPath, arguments: ["unlink", formula])
+        }
+        
+        let result = await executeCommandWithProgress(executable: brewPath, arguments: ["uninstall", formula])
+        
+        if case .success = result {
+            await detectInstalledVersions()
+            return .success("\(formula) 已卸载")
+        }
+        return result
     }
     
     // MARK: - 检查可用性

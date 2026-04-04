@@ -372,6 +372,21 @@ struct MySQLSettingsView: View {
             .padding(24)
             .frame(width: 600, height: 400)
         }
+        .sheet(isPresented: $viewModel.showingInstallSheet) {
+            BrewInstallSheet(
+                title: "安装 \(viewModel.selectedInstallName)",
+                formula: viewModel.selectedInstallFormula,
+                isInstalling: viewModel.isInstalling,
+                installLog: viewModel.installLog,
+                onInstall: { formula in
+                    Task { await viewModel.installVersion(formula: formula) }
+                },
+                onClose: {
+                    viewModel.showingInstallSheet = false
+                    Task { await viewModel.load() }
+                }
+            )
+        }
     }
     
     private func saveConfig(restart: Bool) async {
@@ -559,10 +574,23 @@ class MySQLSettingsViewModel: ObservableObject {
     @Published var slowQueries = "--"
     @Published var openTables = "--"
     @Published var questionsPerSecond = "--"
+    @Published var installedVersions: [MySQLVersionInfo] = []
+    @Published var activeVersion = ""
+    @Published var isSwitching = false
+    @Published var isInstalling = false
+    @Published var installLog = ""
+    @Published var selectedInstallFormula = ""
+    @Published var selectedInstallName = ""
+    @Published var showingInstallSheet = false
     
     private let service = MySQLService.shared
     
     func load() async {
+        // 先检测版本信息
+        await service.detectInstalledVersions()
+        installedVersions = service.installedVersions
+        activeVersion = service.activeVersion
+        
         isAvailable = service.checkMySQLAvailable()
         guard isAvailable else { return }
         
@@ -586,6 +614,30 @@ class MySQLSettingsViewModel: ObservableObject {
         if isRunning {
             await refreshStatus()
         }
+    }
+    
+    func switchVersion(to formula: String) async {
+        guard !isSwitching else { return }
+        isSwitching = true
+        _ = await service.switchVersion(to: formula)
+        await load()
+        isSwitching = false
+    }
+    
+    func installVersion(formula: String) async {
+        guard !isInstalling else { return }
+        isInstalling = true
+        installLog = ""
+        let result = await service.installVersion(formula: formula) { [weak self] output in
+            self?.installLog += output
+        }
+        if case .success = result {
+            await service.detectInstalledVersions()
+            installedVersions = service.installedVersions
+            activeVersion = service.activeVersion
+            isAvailable = service.checkMySQLAvailable()
+        }
+        isInstalling = false
     }
     
     // MARK: - 配置管理

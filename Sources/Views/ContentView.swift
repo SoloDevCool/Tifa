@@ -200,6 +200,7 @@ enum MongoDbTab: String, CaseIterable, Identifiable {
 
 enum MySQLTab: String, CaseIterable, Identifiable {
     case databases = "数据库"
+    case versions = "版本"
     case settings = "设置"
     
     var id: String { rawValue }
@@ -207,6 +208,7 @@ enum MySQLTab: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .databases: return "cylinder"
+        case .versions: return "square.stack.3d.up"
         case .settings: return "gear"
         }
     }
@@ -415,6 +417,8 @@ struct ContentView: View {
             switch selectedMySQLTab {
             case .databases:
                 MySQLView()
+            case .versions:
+                MySQLVersionsView()
             case .settings:
                 MySQLSettingsView()
             }

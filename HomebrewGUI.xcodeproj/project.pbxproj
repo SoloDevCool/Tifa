@@ -19,6 +19,7 @@
 		41E33F39909BEBC929340FDE /* OutdatedPackagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56B3B141F836A81C94419985 /* OutdatedPackagesView.swift */; };
 		483ED4D9A5EE0E7B08CD120E /* PostgresView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95C83CB6F758DD4FC4D9918A /* PostgresView.swift */; };
 		4E04BA0C4B25C67586363605 /* PostgresService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBB10424052985951BE0591 /* PostgresService.swift */; };
+		53D5E0E8AA0D150DA1827816 /* BrewInstallSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EEB7C91C5557C13D88B752F /* BrewInstallSheet.swift */; };
 		5637F0971C5AF909C02E40D3 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A18B3C5061EB2A1C2CA6791 /* SearchView.swift */; };
 		67748DEC6AAC9CB1AB82F00A /* NvmSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D596684DB670F1502C45E8A3 /* NvmSettingsView.swift */; };
 		683AE5920E9B98508764CEDE /* NvmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F59E087C02B2D30EA217B3E0 /* NvmView.swift */; };
@@ -40,6 +41,7 @@
 		BCA12BE21AE6C385A69A588A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34E8F93B0545D022AE0B4D0C /* SettingsView.swift */; };
 		C8D910E7F3283FF97FA1B3BD /* TapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABABBF8B32229875BFF018F4 /* TapView.swift */; };
 		D692DFB052F33724CE8992A4 /* MySQLSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 510FC53F3D3E00A31C3872F6 /* MySQLSettingsView.swift */; };
+		D6D2690566B58C82D725A674 /* MySQLVersionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7776740DBA4E394BB87CD747 /* MySQLVersionsView.swift */; };
 		DF68152FFF53DC4F068BD1B4 /* RVMSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C91E1BABE8DF4A21454D260 /* RVMSettingsView.swift */; };
 		E5D875D30AD6F1564874D981 /* RVMService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9458D8294C9A1D934524786E /* RVMService.swift */; };
 		E6F1161784C6A78EB046A962 /* RedisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88142EC84E299CAACFA31506 /* RedisService.swift */; };
@@ -66,6 +68,7 @@
 		5DAEABD63BF4A7BE8A53E747 /* MongoDbSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoDbSettingsView.swift; sourceTree = "<group>"; };
 		5E398EA5B6C217361C65F901 /* SystemService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemService.swift; sourceTree = "<group>"; };
 		613146AB6C3333AE7AF9DA0A /* SystemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemView.swift; sourceTree = "<group>"; };
+		7776740DBA4E394BB87CD747 /* MySQLVersionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLVersionsView.swift; sourceTree = "<group>"; };
 		7C91E1BABE8DF4A21454D260 /* RVMSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RVMSettingsView.swift; sourceTree = "<group>"; };
 		80058236263171CBE5586116 /* EnvService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvService.swift; sourceTree = "<group>"; };
 		83E84515E79AB37F1A4A27DF /* RVMGemsetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RVMGemsetView.swift; sourceTree = "<group>"; };
@@ -76,6 +79,7 @@
 		95C83CB6F758DD4FC4D9918A /* PostgresView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostgresView.swift; sourceTree = "<group>"; };
 		987D9923CEEFAE9313C33EB4 /* HomebrewGUIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomebrewGUIApp.swift; sourceTree = "<group>"; };
 		9C10CFEC11CE1C3CE03C0B2D /* PyenvView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PyenvView.swift; sourceTree = "<group>"; };
+		9EEB7C91C5557C13D88B752F /* BrewInstallSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrewInstallSheet.swift; sourceTree = "<group>"; };
 		ABABBF8B32229875BFF018F4 /* TapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TapView.swift; sourceTree = "<group>"; };
 		B324AC35605ACEB584304F9D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		BC315BDE90A441A55660A57A /* InstalledPackagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledPackagesView.swift; sourceTree = "<group>"; };
@@ -128,6 +132,7 @@
 				5DAEABD63BF4A7BE8A53E747 /* MongoDbSettingsView.swift */,
 				386A2F60818EFD913E84660B /* MongoDbView.swift */,
 				510FC53F3D3E00A31C3872F6 /* MySQLSettingsView.swift */,
+				7776740DBA4E394BB87CD747 /* MySQLVersionsView.swift */,
 				BE656930F45115B5D6B409D8 /* MySQLView.swift */,
 				D596684DB670F1502C45E8A3 /* NvmSettingsView.swift */,
 				F59E087C02B2D30EA217B3E0 /* NvmView.swift */,
@@ -191,6 +196,7 @@
 		E3EB83E3F0BE18F339128650 /* Components */ = {
 			isa = PBXGroup;
 			children = (
+				9EEB7C91C5557C13D88B752F /* BrewInstallSheet.swift */,
 				8489987B2E34854E236C91E6 /* EmptyStateView.swift */,
 			);
 			path = Components;
@@ -275,6 +281,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				53D5E0E8AA0D150DA1827816 /* BrewInstallSheet.swift in Sources */,
 				8E5D812F0A59EBFF5287E28E /* BrewPackage.swift in Sources */,
 				FFD832B8CA90F0F09B109E82 /* ContentView.swift in Sources */,
 				A76257FCD94799B1CDABC8CE /* EmptyStateView.swift in Sources */,
@@ -289,6 +296,7 @@
 				0D4570155139252D989B6C16 /* MySQLConfigModel.swift in Sources */,
 				B62DA26720E4F611CB18671F /* MySQLService.swift in Sources */,
 				D692DFB052F33724CE8992A4 /* MySQLSettingsView.swift in Sources */,
+				D6D2690566B58C82D725A674 /* MySQLVersionsView.swift in Sources */,
 				8733F5173338F26F50B92A40 /* MySQLView.swift in Sources */,
 				07F775BE075179484540A704 /* NvmService.swift in Sources */,
 				67748DEC6AAC9CB1AB82F00A /* NvmSettingsView.swift in Sources */,

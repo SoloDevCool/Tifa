@@ -12,6 +12,9 @@ struct MySQLView: View {
     @State private var tableInfoText = ""
     @State private var showingCommandResult = false
     @State private var commandResultText = ""
+    @State private var showingInstallSheet = false
+    @State private var showingUninstallConfirm = false
+    @State private var versionToUninstall: MySQLVersionInfo?
     
     private let charsets = ["utf8mb4", "utf8", "latin1", "gbk", "gb2312", "big5"]
     
@@ -55,12 +58,51 @@ struct MySQLView: View {
             
             Divider()
             
-            if !viewModel.isAvailable {
-                EmptyStateView(
-                    title: "MySQL 未安装",
-                    systemImage: "xmark.icloud",
-                    description: "请先通过 Homebrew 安装：brew install mysql"
-                )
+            if !viewModel.isAvailable && viewModel.installedVersions.isEmpty {
+                // 完全未安装
+                VStack(spacing: 24) {
+                    Spacer()
+                    Image(systemName: "cylinder")
+                        .font(.system(size: 48))
+                        .foregroundColor(.secondary)
+                    
+                    Text("MySQL 未安装")
+                        .font(.title2.bold())
+                    
+                    Text("选择要安装的 MySQL 版本")
+                        .foregroundColor(.secondary)
+                    
+                    // 可安装版本列表
+                    VStack(spacing: 12) {
+                        ForEach(MySQLService.availableVersions, id: \.formula) { version in
+                            Button(action: {
+                                showingInstallSheet = true
+                                viewModel.selectedInstallFormula = version.formula
+                                viewModel.selectedInstallName = version.name
+                            }) {
+                                HStack {
+                                    Image(systemName: "arrow.down.circle")
+                                        .foregroundColor(.accentColor)
+                                    Text(version.name)
+                                        .foregroundColor(.primary)
+                                    Spacer()
+                                    Text(version.formula)
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding()
+                                .background(Color(nsColor: .controlBackgroundColor))
+                                .cornerRadius(8)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .frame(maxWidth: 360)
+                    
+                    Spacer()
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color(nsColor: .textBackgroundColor))
             } else {
                 // 工具栏
                 HStack {
@@ -283,6 +325,39 @@ struct MySQLView: View {
             .padding(24)
             .frame(width: 500, height: 300)
         }
+        .sheet(isPresented: $showingInstallSheet) {
+            BrewInstallSheet(
+                title: "安装 \(viewModel.selectedInstallName)",
+                formula: viewModel.selectedInstallFormula,
+                isInstalling: viewModel.isInstalling,
+                installLog: viewModel.installLog,
+                onInstall: { formula in
+                    Task { await viewModel.installVersion(formula: formula) }
+                },
+                onClose: {
+                    showingInstallSheet = false
+                    Task { await viewModel.refresh() }
+                }
+            )
+        }
+        .alert("卸载确认", isPresented: $showingUninstallConfirm) {
+            Button("取消", role: .cancel) {}
+            Button("卸载", role: .destructive) {
+                if let ver = versionToUninstall {
+                    Task {
+                        let result = await viewModel.uninstallVersion(formula: ver.formula)
+                        switch result {
+                        case .success: await viewModel.refresh()
+                        case .failure(let error):
+                            commandResultText = "卸载失败: \(error)"
+                            showingCommandResult = true
+                        }
+                    }
+                }
+            }
+        } message: {
+            Text("确定要卸载 \(versionToUninstall?.displayName ?? "") 吗？\n这将删除 \(versionToUninstall?.formula ?? "") 的所有文件。")
+        }
     }
     
     private func isSystemDatabase(_ name: String) -> Bool {
@@ -300,10 +375,21 @@ class MySQLViewModel: ObservableObject {
     @Published var serviceName = ""
     @Published var databases: [MySQLDatabase] = []
     @Published var isLoading = false
+    @Published var installedVersions: [MySQLVersionInfo] = []
+    @Published var activeVersion = ""
+    @Published var isInstalling = false
+    @Published var isSwitching = false
+    @Published var installLog = ""
+    @Published var selectedInstallFormula = ""
+    @Published var selectedInstallName = ""
     
     private let service = MySQLService.shared
     
     func load() async {
+        await service.detectInstalledVersions()
+        installedVersions = service.installedVersions
+        activeVersion = service.activeVersion
+        
         isAvailable = service.checkMySQLAvailable()
         guard isAvailable else { return }
         
@@ -323,6 +409,39 @@ class MySQLViewModel: ObservableObject {
     
     func refresh() async {
         await load()
+    }
+    
+    func installVersion(formula: String) async {
+        guard !isInstalling else { return }
+        isInstalling = true
+        installLog = ""
+        
+        let result = await service.installVersion(formula: formula) { [weak self] output in
+            self?.installLog += output
+        }
+        
+        if case .success = result {
+            await service.detectInstalledVersions()
+            installedVersions = service.installedVersions
+            activeVersion = service.activeVersion
+            isAvailable = service.checkMySQLAvailable()
+            if isAvailable {
+                serviceName = service.getServiceName()
+            }
+        }
+        isInstalling = false
+    }
+    
+    func switchVersion(to formula: String) async {
+        guard !isSwitching else { return }
+        isSwitching = true
+        _ = await service.switchVersion(to: formula)
+        await load()
+        isSwitching = false
+    }
+    
+    func uninstallVersion(formula: String) async -> OperationResult {
+        return await service.uninstallVersion(formula: formula)
     }
     
     func startMySQL() async {
