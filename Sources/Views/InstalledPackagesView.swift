@@ -2,7 +2,9 @@ import SwiftUI
 
 struct InstalledPackagesView: View {
     @StateObject private var viewModel = InstalledPackagesViewModel()
+    @StateObject private var service = HomebrewService.shared
     @State private var searchText = ""
+    @State private var showingUpdateLog = false
     @State private var selectedPackage: BrewPackage?
     @State private var showingUninstallAlert = false
     @State private var showingDetail = false
@@ -26,7 +28,16 @@ struct InstalledPackagesView: View {
                 Button(action: { Task { await viewModel.refresh() } }) {
                     Label("刷新", systemImage: "arrow.clockwise")
                 }
-                
+
+                Button(action: {
+                    showingUpdateLog = true
+                    Task { await viewModel.brewUpdate() }
+                }) {
+                    Label("更新源", systemImage: "arrow.triangle.2.circlepath")
+                }
+                .help("执行 brew update 更新 Homebrew 源索引")
+                .disabled(viewModel.isUpdating)
+
                 Spacer()
                 
                 Text("\(viewModel.packages.count) 个已安装包")
@@ -91,6 +102,11 @@ struct InstalledPackagesView: View {
         }
         .sheet(isPresented: $showingDetail) {
             PackageDetailSheet(package: detailPackage, info: detailInfo)
+        }
+        .sheet(isPresented: $showingUpdateLog) {
+            BrewUpdateLogSheet(isUpdating: viewModel.isUpdating, log: service.updateLog) {
+                showingUpdateLog = false
+            }
         }
     }
     
@@ -211,6 +227,7 @@ struct PackageRowView: View {
 class InstalledPackagesViewModel: ObservableObject {
     @Published var packages: [BrewPackage] = []
     @Published var isLoading = false
+    @Published var isUpdating = false
     @Published var selectedPackageForUninstall: BrewPackage?
     
     private let service = HomebrewService.shared
@@ -223,6 +240,15 @@ class InstalledPackagesViewModel: ObservableObject {
     
     func refresh() async {
         await loadPackages()
+    }
+    
+    func brewUpdate() async {
+        isUpdating = true
+        let result = await service.updateHomebrew()
+        if case .success = result {
+            await loadPackages()
+        }
+        isUpdating = false
     }
     
     func uninstall(_ package: BrewPackage) async {

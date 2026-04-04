@@ -9,6 +9,7 @@ class HomebrewService: ObservableObject {
     @Published var isLoading = false
     @Published var loadingMessage = ""
     @Published var lastError: String?
+    @Published var updateLog: String = ""
     
     /// 镜像源环境变量（可由设置页动态更新）
     private var mirrorEnvVars: [String: String] = [:]
@@ -164,7 +165,8 @@ class HomebrewService: ObservableObject {
     
     func updateHomebrew() async -> OperationResult {
         updateLoadingState(message: "正在更新 Homebrew...")
-        let result = await executeBrewCommandWithProgress(arguments: ["update"])
+        updateLog = ""
+        let result = await executeBrewCommandStreaming(arguments: ["update"])
         return result
     }
     
@@ -292,6 +294,127 @@ class HomebrewService: ObservableObject {
                     }
                     continuation.resume(returning: .failure("无法启动 brew: \(error.localizedDescription)"))
                 }
+            }
+        }
+    }
+    
+    /// 流式执行 brew 命令，实时输出日志到 updateLog
+    private func executeBrewCommandStreaming(arguments: [String]) async -> OperationResult {
+        let path = brewPath
+        let env = brewEnvironment
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                let process = Process()
+                let stdoutPipe = Pipe()
+                let stderrPipe = Pipe()
+                
+                process.executableURL = URL(fileURLWithPath: path)
+                process.arguments = arguments
+                process.environment = env
+                process.standardOutput = stdoutPipe
+                process.standardError = stderrPipe
+                
+                let semaphore = DispatchSemaphore(value: 0)
+                
+                func appendLog(_ text: String) {
+                    let trimmed = text.trimmingCharacters(in: .newlines)
+                    guard !trimmed.isEmpty else { return }
+                    DispatchQueue.main.async {
+                        self?.updateLog += trimmed + "\n"
+                    }
+                }
+                
+                stdoutPipe.fileHandleForReading.readabilityHandler = { handle in
+                    let data = handle.availableData
+                    if data.isEmpty {
+                        stdoutPipe.fileHandleForReading.readabilityHandler = nil
+                        semaphore.signal()
+                        return
+                    }
+                    if let str = String(data: data, encoding: .utf8), !str.isEmpty {
+                        appendLog(str)
+                    }
+                }
+                
+                stderrPipe.fileHandleForReading.readabilityHandler = { handle in
+                    let data = handle.availableData
+                    if data.isEmpty {
+                        stderrPipe.fileHandleForReading.readabilityHandler = nil
+                        semaphore.signal()
+                        return
+                    }
+                    if let str = String(data: data, encoding: .utf8), !str.isEmpty {
+                        appendLog(str)
+                    }
+                }
+                
+                do {
+                    try process.run()
+                    process.waitUntilExit()
+                    
+                    // 等待 pipe 读完剩余数据
+                    let group = DispatchGroup()
+                    group.enter()
+                    stdoutPipe.fileHandleForReading.readabilityHandler = { handle in
+                        let data = handle.availableData
+                        if data.isEmpty {
+                            stdoutPipe.fileHandleForReading.readabilityHandler = nil
+                            group.leave()
+                            return
+                        }
+                        if let str = String(data: data, encoding: .utf8), !str.isEmpty {
+                            appendLog(str)
+                        }
+                    }
+                    group.enter()
+                    stderrPipe.fileHandleForReading.readabilityHandler = { handle in
+                        let data = handle.availableData
+                        if data.isEmpty {
+                            stderrPipe.fileHandleForReading.readabilityHandler = nil
+                            group.leave()
+                            return
+                        }
+                        if let str = String(data: data, encoding: .utf8), !str.isEmpty {
+                            appendLog(str)
+                        }
+                    }
+                    group.wait()
+                    
+                    DispatchQueue.main.async {
+                        self?.isLoading = false
+                    }
+                    
+                    // 读取最终残留数据
+                    let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+                    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+                    let finalStdout = String(data: stdoutData, encoding: .utf8) ?? ""
+                    let finalStderr = String(data: stderrData, encoding: .utf8) ?? ""
+                    if !finalStdout.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        appendLog(finalStdout)
+                    }
+                    if !finalStderr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        appendLog(finalStderr)
+                    }
+                    
+                    let exitCode = process.terminationStatus
+                    DispatchQueue.main.async {
+                        self?.updateLog += exitCode == 0 ? "\n✅ 更新完成" : "\n❌ 更新失败 (exit code \(exitCode))"
+                    }
+                    
+                    if exitCode == 0 {
+                        continuation.resume(returning: .success(self?.updateLog ?? ""))
+                    } else {
+                        continuation.resume(returning: .failure(finalStderr.isEmpty ? finalStdout : finalStderr))
+                    }
+                } catch {
+                    DispatchQueue.main.async {
+                        self?.isLoading = false
+                        self?.updateLog += "\n❌ 无法启动 brew: \(error.localizedDescription)"
+                    }
+                    continuation.resume(returning: .failure("无法启动 brew: \(error.localizedDescription)"))
+                }
+                
+                _ = semaphore.wait(timeout: .now() + 1)
             }
         }
     }
