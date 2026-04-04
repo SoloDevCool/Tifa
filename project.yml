@@ -1,0 +1,34 @@
+name: HomebrewGUI
+options:
+  bundleIdPrefix: com.ailisi
+  deploymentTarget:
+    macOS: "13.0"
+  xcodeVersion: "15.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    PRODUCT_NAME: HomebrewGUI
+    MARKETING_VERSION: "1.0.0"
+    CURRENT_PROJECT_VERSION: "1"
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "13.0"
+    CODE_SIGN_IDENTITY: "-"
+    CODE_SIGN_STYLE: Manual
+    DEVELOPMENT_TEAM: ""
+
+targets:
+  HomebrewGUI:
+    type: application
+    platform: macOS
+    sources:
+      - Sources
+    settings:
+      base:
+        INFOPLIST_FILE: Resources/Info.plist
+        PRODUCT_BUNDLE_IDENTIFIER: com.ailisi.homebrewgui
+        COMBINE_HIDPI_IMAGES: true
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+    resources:
+      - Resources
+    dependencies: []
