@@ -18,10 +18,12 @@
 		4E04BA0C4B25C67586363605 /* PostgresService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBB10424052985951BE0591 /* PostgresService.swift */; };
 		5637F0971C5AF909C02E40D3 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A18B3C5061EB2A1C2CA6791 /* SearchView.swift */; };
 		6B7A2F63B995BE7B89402E48 /* EnvView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCCC568C2DAF6B2D6AF8013C /* EnvView.swift */; };
+		75638BE0BC454DF1590A0CCD /* SystemService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E398EA5B6C217361C65F901 /* SystemService.swift */; };
 		8733F5173338F26F50B92A40 /* MySQLView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE656930F45115B5D6B409D8 /* MySQLView.swift */; };
 		8AAF5394E25037C415A0B079 /* HomebrewGUIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 987D9923CEEFAE9313C33EB4 /* HomebrewGUIApp.swift */; };
 		8C3C9BB0B150DF9F682E7AB0 /* RVMView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FBFC9242399FB31BB20EBCB /* RVMView.swift */; };
 		8E5D812F0A59EBFF5287E28E /* BrewPackage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26B49869AC6CD424A81F8D12 /* BrewPackage.swift */; };
+		944CE7E945BC82D3D3836388 /* SystemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 613146AB6C3333AE7AF9DA0A /* SystemView.swift */; };
 		A170DDC58F969C10DFB62785 /* PyenvSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4B95A3FBE22BCCD8FEEC8925 /* PyenvSettingsView.swift */; };
 		A76257FCD94799B1CDABC8CE /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8489987B2E34854E236C91E6 /* EmptyStateView.swift */; };
 		B52B69EBDBA67120CF4A9DBF /* HomebrewService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD8ED20428CBF7A8F2D5BAB9 /* HomebrewService.swift */; };
@@ -48,6 +50,8 @@
 		510FC53F3D3E00A31C3872F6 /* MySQLSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLSettingsView.swift; sourceTree = "<group>"; };
 		56B3B141F836A81C94419985 /* OutdatedPackagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdatedPackagesView.swift; sourceTree = "<group>"; };
 		5981C1D482C4D3C548AE4BFE /* RubyVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RubyVersion.swift; sourceTree = "<group>"; };
+		5E398EA5B6C217361C65F901 /* SystemService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemService.swift; sourceTree = "<group>"; };
+		613146AB6C3333AE7AF9DA0A /* SystemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemView.swift; sourceTree = "<group>"; };
 		7C91E1BABE8DF4A21454D260 /* RVMSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RVMSettingsView.swift; sourceTree = "<group>"; };
 		80058236263171CBE5586116 /* EnvService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvService.swift; sourceTree = "<group>"; };
 		83E84515E79AB37F1A4A27DF /* RVMGemsetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RVMGemsetView.swift; sourceTree = "<group>"; };
@@ -75,6 +79,7 @@
 				0CBB10424052985951BE0591 /* PostgresService.swift */,
 				9154907A909850B6247B0F09 /* PyenvService.swift */,
 				9458D8294C9A1D934524786E /* RVMService.swift */,
+				5E398EA5B6C217361C65F901 /* SystemService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -105,6 +110,7 @@
 				1FBFC9242399FB31BB20EBCB /* RVMView.swift */,
 				4A18B3C5061EB2A1C2CA6791 /* SearchView.swift */,
 				34E8F93B0545D022AE0B4D0C /* SettingsView.swift */,
+				613146AB6C3333AE7AF9DA0A /* SystemView.swift */,
 				E3EB83E3F0BE18F339128650 /* Components */,
 			);
 			path = Views;
@@ -240,6 +246,8 @@
 				36612B606C9A18C5B22D2B38 /* RubyVersion.swift in Sources */,
 				5637F0971C5AF909C02E40D3 /* SearchView.swift in Sources */,
 				BCA12BE21AE6C385A69A588A /* SettingsView.swift in Sources */,
+				75638BE0BC454DF1590A0CCD /* SystemService.swift in Sources */,
+				944CE7E945BC82D3D3836388 /* SystemView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

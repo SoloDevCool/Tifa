@@ -8,6 +8,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
     case pyenv = "pyenv"
     case mysql = "MySQL"
     case postgres = "PostgreSQL"
+    case system = "系统监控"
     case env = "环境变量"
     
     var id: String { rawValue }
@@ -19,6 +20,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
         case .pyenv: return "leaf"
         case .mysql: return "cylinder"
         case .postgres: return "externaldrive"
+        case .system: return "chart.bar"
         case .env: return "gearshape.2"
         }
     }
@@ -228,10 +230,10 @@ struct ContentView: View {
                 }
                 .listStyle(.sidebar)
             } else {
-                // 环境变量 - 单页面，无子菜单
+                // 系统监控、环境变量 - 单页面，无子菜单
                 VStack {
                     Spacer()
-                    Text("环境变量管理")
+                    Text(selectedCategory == .system ? "系统监控" : "环境变量管理")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding()
@@ -290,6 +292,8 @@ struct ContentView: View {
             }
         case .env:
             EnvView()
+        case .system:
+            SystemView()
         }
     }
 }

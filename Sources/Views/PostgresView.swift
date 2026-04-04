@@ -514,7 +514,7 @@ class PostgresViewModel: ObservableObject {
             installOutput += msg + "\n"
             // 清理成功，自动重试安装
             installOutput += "🔄 正在重新安装...\n"
-            await install(formula: selectedVersion)
+            let _ = await install(formula: selectedVersion)
         case .failure(let error):
             installOutput += "❌ 清理失败: \(error)\n"
             installResult = .failure("清理锁文件失败: \(error)")
