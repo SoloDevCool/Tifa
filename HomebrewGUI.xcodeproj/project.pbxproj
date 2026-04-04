@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		006539EAEAAD59A91F57D0EE /* PyenvView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9C10CFEC11CE1C3CE03C0B2D /* PyenvView.swift */; };
 		0595A2CC46ABE3480B319F89 /* InstalledPackagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BC315BDE90A441A55660A57A /* InstalledPackagesView.swift */; };
+		07F775BE075179484540A704 /* NvmService.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC39E0D6646C27D6CD58F24F /* NvmService.swift */; };
 		0D4570155139252D989B6C16 /* MySQLConfigModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = ECC76A6C5EFCA592F6BC16C7 /* MySQLConfigModel.swift */; };
 		169FFCD6D71415E64863C62A /* RVMGemsetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 83E84515E79AB37F1A4A27DF /* RVMGemsetView.swift */; };
 		36612B606C9A18C5B22D2B38 /* RubyVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5981C1D482C4D3C548AE4BFE /* RubyVersion.swift */; };
@@ -18,6 +19,8 @@
 		483ED4D9A5EE0E7B08CD120E /* PostgresView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95C83CB6F758DD4FC4D9918A /* PostgresView.swift */; };
 		4E04BA0C4B25C67586363605 /* PostgresService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBB10424052985951BE0591 /* PostgresService.swift */; };
 		5637F0971C5AF909C02E40D3 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A18B3C5061EB2A1C2CA6791 /* SearchView.swift */; };
+		67748DEC6AAC9CB1AB82F00A /* NvmSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D596684DB670F1502C45E8A3 /* NvmSettingsView.swift */; };
+		683AE5920E9B98508764CEDE /* NvmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F59E087C02B2D30EA217B3E0 /* NvmView.swift */; };
 		6B7A2F63B995BE7B89402E48 /* EnvView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCCC568C2DAF6B2D6AF8013C /* EnvView.swift */; };
 		75638BE0BC454DF1590A0CCD /* SystemService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E398EA5B6C217361C65F901 /* SystemService.swift */; };
 		8733F5173338F26F50B92A40 /* MySQLView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE656930F45115B5D6B409D8 /* MySQLView.swift */; };
@@ -68,9 +71,12 @@
 		BC315BDE90A441A55660A57A /* InstalledPackagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledPackagesView.swift; sourceTree = "<group>"; };
 		BD8ED20428CBF7A8F2D5BAB9 /* HomebrewService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomebrewService.swift; sourceTree = "<group>"; };
 		BE656930F45115B5D6B409D8 /* MySQLView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLView.swift; sourceTree = "<group>"; };
+		CC39E0D6646C27D6CD58F24F /* NvmService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NvmService.swift; sourceTree = "<group>"; };
+		D596684DB670F1502C45E8A3 /* NvmSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NvmSettingsView.swift; sourceTree = "<group>"; };
 		DCAFB1C8DA2E54355E1F6CAD /* RedisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisView.swift; sourceTree = "<group>"; };
 		DCCC568C2DAF6B2D6AF8013C /* EnvView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvView.swift; sourceTree = "<group>"; };
 		ECC76A6C5EFCA592F6BC16C7 /* MySQLConfigModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLConfigModel.swift; sourceTree = "<group>"; };
+		F59E087C02B2D30EA217B3E0 /* NvmView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NvmView.swift; sourceTree = "<group>"; };
 		F7307CDA96604BE9FF9E9BFC /* RedisSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisSettingsView.swift; sourceTree = "<group>"; };
 		FA244D5BF545E1685C58B052 /* HomebrewGUI.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = HomebrewGUI.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -82,6 +88,7 @@
 				80058236263171CBE5586116 /* EnvService.swift */,
 				BD8ED20428CBF7A8F2D5BAB9 /* HomebrewService.swift */,
 				2CD185288C364A2B62CB8AA4 /* MySQLService.swift */,
+				CC39E0D6646C27D6CD58F24F /* NvmService.swift */,
 				0CBB10424052985951BE0591 /* PostgresService.swift */,
 				9154907A909850B6247B0F09 /* PyenvService.swift */,
 				88142EC84E299CAACFA31506 /* RedisService.swift */,
@@ -107,6 +114,8 @@
 				BC315BDE90A441A55660A57A /* InstalledPackagesView.swift */,
 				510FC53F3D3E00A31C3872F6 /* MySQLSettingsView.swift */,
 				BE656930F45115B5D6B409D8 /* MySQLView.swift */,
+				D596684DB670F1502C45E8A3 /* NvmSettingsView.swift */,
+				F59E087C02B2D30EA217B3E0 /* NvmView.swift */,
 				56B3B141F836A81C94419985 /* OutdatedPackagesView.swift */,
 				1BEE6BFFA59BB13911585DAA /* PostgresSettingsView.swift */,
 				95C83CB6F758DD4FC4D9918A /* PostgresView.swift */,
@@ -241,6 +250,9 @@
 				B62DA26720E4F611CB18671F /* MySQLService.swift in Sources */,
 				D692DFB052F33724CE8992A4 /* MySQLSettingsView.swift in Sources */,
 				8733F5173338F26F50B92A40 /* MySQLView.swift in Sources */,
+				07F775BE075179484540A704 /* NvmService.swift in Sources */,
+				67748DEC6AAC9CB1AB82F00A /* NvmSettingsView.swift in Sources */,
+				683AE5920E9B98508764CEDE /* NvmView.swift in Sources */,
 				41E33F39909BEBC929340FDE /* OutdatedPackagesView.swift in Sources */,
 				4E04BA0C4B25C67586363605 /* PostgresService.swift in Sources */,
 				BB827DCC7678C5E627C8A0D0 /* PostgresSettingsView.swift in Sources */,

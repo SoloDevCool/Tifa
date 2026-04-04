@@ -1,5 +1,23 @@
 import SwiftUI
 
+// MARK: - 分类分组
+
+enum CategoryGroup: String, CaseIterable, Identifiable {
+    case basic = "基础服务"
+    case language = "语言管理器"
+    case database = "数据库"
+    
+    var id: String { rawValue }
+    
+    var icon: String {
+        switch self {
+        case .basic: return "wrench.and.screwdriver"
+        case .language: return "chevron.left.forwardslash.chevron.right"
+        case .database: return "cylinder"
+        }
+    }
+}
+
 // MARK: - 分类定义
 
 enum ToolCategory: String, CaseIterable, Identifiable {
@@ -9,6 +27,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
     case mysql = "MySQL"
     case postgres = "PostgreSQL"
     case redis = "Redis"
+    case nvm = "NVM"
     case system = "系统监控"
     case env = "环境变量"
     
@@ -22,10 +41,37 @@ enum ToolCategory: String, CaseIterable, Identifiable {
         case .mysql: return "cylinder"
         case .postgres: return "externaldrive"
         case .redis: return "arrow.left.arrow.right"
+        case .nvm: return "chevron.left.forwardslash.chevron.right"
         case .system: return "chart.bar"
         case .env: return "gearshape.2"
         }
     }
+    
+    var group: CategoryGroup {
+        switch self {
+        case .system, .homebrew, .env: return .basic
+        case .rvm, .pyenv, .nvm: return .language
+        case .mysql, .postgres, .redis: return .database
+        }
+    }
+    
+    /// 按分组排列的分类顺序
+    static let grouped: [(group: CategoryGroup, items: [ToolCategory])] = {
+        var result: [(group: CategoryGroup, items: [ToolCategory])] = []
+        for group in CategoryGroup.allCases {
+            let items = allCases.filter { $0.group == group }
+            // 基础服务内按指定顺序排列
+            let ordered: [ToolCategory] = {
+                switch group {
+                case .basic: return [.system, .homebrew, .env]
+                case .language: return items
+                case .database: return items
+                }
+            }()
+            result.append((group: group, items: ordered))
+        }
+        return result
+    }()
 }
 
 // MARK: - Homebrew 子菜单
@@ -114,7 +160,23 @@ enum RedisTab: String, CaseIterable, Identifiable {
     }
 }
 
-// MARK: - 系统监控（单页面）
+// MARK: - NVM 子菜单
+
+enum NVMTab: String, CaseIterable, Identifiable {
+    case versions = "Node 版本"
+    case settings = "设置"
+    
+    var id: String { rawValue }
+    
+    var icon: String {
+        switch self {
+        case .versions: return "chevron.left.forwardslash.chevron.right"
+        case .settings: return "gear"
+        }
+    }
+}
+
+// MARK: - MySQL 子菜单
 
 enum MySQLTab: String, CaseIterable, Identifiable {
     case databases = "数据库"
@@ -141,6 +203,7 @@ struct ContentView: View {
     @State private var selectedPyenvTab: PyenvTab = .versions
     @State private var selectedPostgresTab: PostgresTab = .databases
     @State private var selectedRedisTab: RedisTab = .keys
+    @State private var selectedNVMTab: NVMTab = .versions
     
     var body: some View {
         HStack(spacing: 0) {
@@ -160,7 +223,7 @@ struct ContentView: View {
         }
         .frame(minWidth: 1000, minHeight: 600)
         .overlay {
-            if homebrewService.isLoading || RVMService.shared.isLoading || MySQLService.shared.isLoading || PyenvService.shared.isLoading || PostgresService.shared.isLoading {
+            if homebrewService.isLoading || RVMService.shared.isLoading || MySQLService.shared.isLoading || PyenvService.shared.isLoading || PostgresService.shared.isLoading || NvmService.shared.isLoading {
                 LoadingOverlay(message: homebrewService.isLoading ? homebrewService.loadingMessage : (RVMService.shared.isLoading ? RVMService.shared.loadingMessage : (MySQLService.shared.isLoading ? MySQLService.shared.loadingMessage : (PyenvService.shared.isLoading ? PyenvService.shared.loadingMessage : PostgresService.shared.loadingMessage))))
             }
         }
@@ -186,9 +249,22 @@ struct ContentView: View {
             Divider()
             
             List(selection: $selectedCategory) {
-                ForEach(ToolCategory.allCases) { category in
-                    Label(category.rawValue, systemImage: category.icon)
-                        .tag(category)
+                ForEach(ToolCategory.grouped, id: \.group.id) { section in
+                    Section {
+                        ForEach(section.items) { category in
+                            Label(category.rawValue, systemImage: category.icon)
+                                .tag(category)
+                        }
+                    } header: {
+                        HStack(spacing: 4) {
+                            Image(systemName: section.group.icon)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                            Text(section.group.rawValue)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
                 }
             }
             .listStyle(.sidebar)
@@ -251,6 +327,14 @@ struct ContentView: View {
             } else if selectedCategory == .redis {
                 List(selection: $selectedRedisTab) {
                     ForEach(RedisTab.allCases) { tab in
+                        Label(tab.rawValue, systemImage: tab.icon)
+                            .tag(tab)
+                    }
+                }
+                .listStyle(.sidebar)
+            } else if selectedCategory == .nvm {
+                List(selection: $selectedNVMTab) {
+                    ForEach(NVMTab.allCases) { tab in
                         Label(tab.rawValue, systemImage: tab.icon)
                             .tag(tab)
                     }
@@ -323,6 +407,13 @@ struct ContentView: View {
                 RedisView()
             case .settings:
                 RedisSettingsView()
+            }
+        case .nvm:
+            switch selectedNVMTab {
+            case .versions:
+                NvmView()
+            case .settings:
+                NvmSettingsView()
             }
         case .env:
             EnvView()
