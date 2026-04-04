@@ -8,6 +8,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
     case pyenv = "pyenv"
     case mysql = "MySQL"
     case postgres = "PostgreSQL"
+    case redis = "Redis"
     case system = "系统监控"
     case env = "环境变量"
     
@@ -20,6 +21,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
         case .pyenv: return "leaf"
         case .mysql: return "cylinder"
         case .postgres: return "externaldrive"
+        case .redis: return "arrow.left.arrow.right"
         case .system: return "chart.bar"
         case .env: return "gearshape.2"
         }
@@ -96,7 +98,23 @@ enum PostgresTab: String, CaseIterable, Identifiable {
     }
 }
 
-// MARK: - MySQL 子菜单
+// MARK: - Redis 子菜单
+
+enum RedisTab: String, CaseIterable, Identifiable {
+    case keys = "键管理"
+    case settings = "设置"
+    
+    var id: String { rawValue }
+    
+    var icon: String {
+        switch self {
+        case .keys: return "archivebox"
+        case .settings: return "gear"
+        }
+    }
+}
+
+// MARK: - 系统监控（单页面）
 
 enum MySQLTab: String, CaseIterable, Identifiable {
     case databases = "数据库"
@@ -122,6 +140,7 @@ struct ContentView: View {
     @State private var selectedMySQLTab: MySQLTab = .databases
     @State private var selectedPyenvTab: PyenvTab = .versions
     @State private var selectedPostgresTab: PostgresTab = .databases
+    @State private var selectedRedisTab: RedisTab = .keys
     
     var body: some View {
         HStack(spacing: 0) {
@@ -229,6 +248,14 @@ struct ContentView: View {
                     }
                 }
                 .listStyle(.sidebar)
+            } else if selectedCategory == .redis {
+                List(selection: $selectedRedisTab) {
+                    ForEach(RedisTab.allCases) { tab in
+                        Label(tab.rawValue, systemImage: tab.icon)
+                            .tag(tab)
+                    }
+                }
+                .listStyle(.sidebar)
             } else {
                 // 系统监控、环境变量 - 单页面，无子菜单
                 VStack {
@@ -289,6 +316,13 @@ struct ContentView: View {
                 PostgresView()
             case .settings:
                 PostgresSettingsView()
+            }
+        case .redis:
+            switch selectedRedisTab {
+            case .keys:
+                RedisView()
+            case .settings:
+                RedisSettingsView()
             }
         case .env:
             EnvView()
