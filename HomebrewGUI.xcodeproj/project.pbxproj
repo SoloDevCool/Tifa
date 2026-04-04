@@ -24,6 +24,7 @@
 		683AE5920E9B98508764CEDE /* NvmView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F59E087C02B2D30EA217B3E0 /* NvmView.swift */; };
 		6B7A2F63B995BE7B89402E48 /* EnvView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCCC568C2DAF6B2D6AF8013C /* EnvView.swift */; };
 		75638BE0BC454DF1590A0CCD /* SystemService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E398EA5B6C217361C65F901 /* SystemService.swift */; };
+		769D730519AFC316A137A5FA /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 47AB253C039088CD27F9834A /* Assets.xcassets */; };
 		8733F5173338F26F50B92A40 /* MySQLView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE656930F45115B5D6B409D8 /* MySQLView.swift */; };
 		8AAF5394E25037C415A0B079 /* HomebrewGUIApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 987D9923CEEFAE9313C33EB4 /* HomebrewGUIApp.swift */; };
 		8C3C9BB0B150DF9F682E7AB0 /* RVMView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1FBFC9242399FB31BB20EBCB /* RVMView.swift */; };
@@ -56,6 +57,7 @@
 		2CD185288C364A2B62CB8AA4 /* MySQLService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLService.swift; sourceTree = "<group>"; };
 		34E8F93B0545D022AE0B4D0C /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		386A2F60818EFD913E84660B /* MongoDbView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoDbView.swift; sourceTree = "<group>"; };
+		47AB253C039088CD27F9834A /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		4A18B3C5061EB2A1C2CA6791 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		4B95A3FBE22BCCD8FEEC8925 /* PyenvSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PyenvSettingsView.swift; sourceTree = "<group>"; };
 		510FC53F3D3E00A31C3872F6 /* MySQLSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLSettingsView.swift; sourceTree = "<group>"; };
@@ -75,6 +77,7 @@
 		987D9923CEEFAE9313C33EB4 /* HomebrewGUIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomebrewGUIApp.swift; sourceTree = "<group>"; };
 		9C10CFEC11CE1C3CE03C0B2D /* PyenvView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PyenvView.swift; sourceTree = "<group>"; };
 		ABABBF8B32229875BFF018F4 /* TapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TapView.swift; sourceTree = "<group>"; };
+		B324AC35605ACEB584304F9D /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		BC315BDE90A441A55660A57A /* InstalledPackagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledPackagesView.swift; sourceTree = "<group>"; };
 		BD8ED20428CBF7A8F2D5BAB9 /* HomebrewService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomebrewService.swift; sourceTree = "<group>"; };
 		BE656930F45115B5D6B409D8 /* MySQLView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLView.swift; sourceTree = "<group>"; };
@@ -110,6 +113,7 @@
 		7D92BB9A74676185AC99F66C = {
 			isa = PBXGroup;
 			children = (
+				CF928FF1CEB8A25F79E9AB1B /* Resources */,
 				B99BA39AA85CA82EFA62A0D0 /* Sources */,
 				D3FF95A311D6869912CCD699 /* Products */,
 			);
@@ -149,12 +153,21 @@
 		B99BA39AA85CA82EFA62A0D0 /* Sources */ = {
 			isa = PBXGroup;
 			children = (
+				47AB253C039088CD27F9834A /* Assets.xcassets */,
 				F5B96F154ACAC1C5BCC604A3 /* App */,
 				DB83E2D1EB5F8E82653980DD /* Models */,
 				5FC1AF3692C1B61B1C01206D /* Services */,
 				8C93D4A7CF7C6A9D464AD52F /* Views */,
 			);
 			path = Sources;
+			sourceTree = "<group>";
+		};
+		CF928FF1CEB8A25F79E9AB1B /* Resources */ = {
+			isa = PBXGroup;
+			children = (
+				B324AC35605ACEB584304F9D /* Info.plist */,
+			);
+			path = Resources;
 			sourceTree = "<group>";
 		};
 		D3FF95A311D6869912CCD699 /* Products */ = {
@@ -199,6 +212,7 @@
 			buildConfigurationList = AFA2B6AFE39B6BA2F334572D /* Build configuration list for PBXNativeTarget "HomebrewGUI" */;
 			buildPhases = (
 				6C3C05AED602C2C62EBDF290 /* Sources */,
+				18DB9B61F2769105F7371CA7 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -244,6 +258,17 @@
 			);
 		};
 /* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		18DB9B61F2769105F7371CA7 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				769D730519AFC316A137A5FA /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		6C3C05AED602C2C62EBDF290 /* Sources */ = {

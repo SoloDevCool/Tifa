@@ -42,7 +42,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
         case .mysql: return "cylinder"
         case .postgres: return "externaldrive"
         case .redis: return "arrow.left.arrow.right"
-        case .mongodb: return "cylinder.split.3x1"
+        case .mongodb: return "leaf.fill"
         case .nvm: return "chevron.left.forwardslash.chevron.right"
         case .system: return "chart.bar"
         case .env: return "gearshape.2"
@@ -190,7 +190,7 @@ enum MongoDbTab: String, CaseIterable, Identifiable {
     
     var icon: String {
         switch self {
-        case .databases: return "cylinder.split.3x1"
+        case .databases: return "leaf.fill"
         case .settings: return "gear"
         }
     }

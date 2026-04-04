@@ -57,7 +57,7 @@ struct MongoDbView: View {
                 // 未安装
                 VStack(spacing: 24) {
                     Spacer()
-                    Image(systemName: "cylinder.split.3x1")
+                    Image(systemName: "leaf.fill")
                         .font(.system(size: 48))
                         .foregroundColor(.secondary)
                     Text("MongoDB 未安装")
@@ -181,7 +181,7 @@ struct MongoDbView: View {
                 } else if viewModel.databases.isEmpty {
                     EmptyStateView(
                         title: "暂无数据库",
-                        systemImage: "cylinder.split.3x1",
+                        systemImage: "leaf.fill",
                         description: "点击「新建数据库」创建"
                     )
                 } else {
