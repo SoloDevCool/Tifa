@@ -14,6 +14,8 @@
 		36612B606C9A18C5B22D2B38 /* RubyVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5981C1D482C4D3C548AE4BFE /* RubyVersion.swift */; };
 		40A541ED02DF5542657DBAD7 /* EnvService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80058236263171CBE5586116 /* EnvService.swift */; };
 		41E33F39909BEBC929340FDE /* OutdatedPackagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56B3B141F836A81C94419985 /* OutdatedPackagesView.swift */; };
+		483ED4D9A5EE0E7B08CD120E /* PostgresView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95C83CB6F758DD4FC4D9918A /* PostgresView.swift */; };
+		4E04BA0C4B25C67586363605 /* PostgresService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0CBB10424052985951BE0591 /* PostgresService.swift */; };
 		5637F0971C5AF909C02E40D3 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A18B3C5061EB2A1C2CA6791 /* SearchView.swift */; };
 		6B7A2F63B995BE7B89402E48 /* EnvView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DCCC568C2DAF6B2D6AF8013C /* EnvView.swift */; };
 		8733F5173338F26F50B92A40 /* MySQLView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE656930F45115B5D6B409D8 /* MySQLView.swift */; };
@@ -24,6 +26,7 @@
 		A76257FCD94799B1CDABC8CE /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8489987B2E34854E236C91E6 /* EmptyStateView.swift */; };
 		B52B69EBDBA67120CF4A9DBF /* HomebrewService.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD8ED20428CBF7A8F2D5BAB9 /* HomebrewService.swift */; };
 		B62DA26720E4F611CB18671F /* MySQLService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CD185288C364A2B62CB8AA4 /* MySQLService.swift */; };
+		BB827DCC7678C5E627C8A0D0 /* PostgresSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BEE6BFFA59BB13911585DAA /* PostgresSettingsView.swift */; };
 		BCA12BE21AE6C385A69A588A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34E8F93B0545D022AE0B4D0C /* SettingsView.swift */; };
 		D692DFB052F33724CE8992A4 /* MySQLSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 510FC53F3D3E00A31C3872F6 /* MySQLSettingsView.swift */; };
 		DF68152FFF53DC4F068BD1B4 /* RVMSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C91E1BABE8DF4A21454D260 /* RVMSettingsView.swift */; };
@@ -34,6 +37,8 @@
 
 /* Begin PBXFileReference section */
 		0B973C760090F7D5D4CDED8A /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		0CBB10424052985951BE0591 /* PostgresService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostgresService.swift; sourceTree = "<group>"; };
+		1BEE6BFFA59BB13911585DAA /* PostgresSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostgresSettingsView.swift; sourceTree = "<group>"; };
 		1FBFC9242399FB31BB20EBCB /* RVMView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RVMView.swift; sourceTree = "<group>"; };
 		26B49869AC6CD424A81F8D12 /* BrewPackage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrewPackage.swift; sourceTree = "<group>"; };
 		2CD185288C364A2B62CB8AA4 /* MySQLService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLService.swift; sourceTree = "<group>"; };
@@ -49,6 +54,7 @@
 		8489987B2E34854E236C91E6 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
 		9154907A909850B6247B0F09 /* PyenvService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PyenvService.swift; sourceTree = "<group>"; };
 		9458D8294C9A1D934524786E /* RVMService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RVMService.swift; sourceTree = "<group>"; };
+		95C83CB6F758DD4FC4D9918A /* PostgresView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostgresView.swift; sourceTree = "<group>"; };
 		987D9923CEEFAE9313C33EB4 /* HomebrewGUIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomebrewGUIApp.swift; sourceTree = "<group>"; };
 		9C10CFEC11CE1C3CE03C0B2D /* PyenvView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PyenvView.swift; sourceTree = "<group>"; };
 		BC315BDE90A441A55660A57A /* InstalledPackagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledPackagesView.swift; sourceTree = "<group>"; };
@@ -66,6 +72,7 @@
 				80058236263171CBE5586116 /* EnvService.swift */,
 				BD8ED20428CBF7A8F2D5BAB9 /* HomebrewService.swift */,
 				2CD185288C364A2B62CB8AA4 /* MySQLService.swift */,
+				0CBB10424052985951BE0591 /* PostgresService.swift */,
 				9154907A909850B6247B0F09 /* PyenvService.swift */,
 				9458D8294C9A1D934524786E /* RVMService.swift */,
 			);
@@ -89,6 +96,8 @@
 				510FC53F3D3E00A31C3872F6 /* MySQLSettingsView.swift */,
 				BE656930F45115B5D6B409D8 /* MySQLView.swift */,
 				56B3B141F836A81C94419985 /* OutdatedPackagesView.swift */,
+				1BEE6BFFA59BB13911585DAA /* PostgresSettingsView.swift */,
+				95C83CB6F758DD4FC4D9918A /* PostgresView.swift */,
 				4B95A3FBE22BCCD8FEEC8925 /* PyenvSettingsView.swift */,
 				9C10CFEC11CE1C3CE03C0B2D /* PyenvView.swift */,
 				83E84515E79AB37F1A4A27DF /* RVMGemsetView.swift */,
@@ -218,6 +227,9 @@
 				D692DFB052F33724CE8992A4 /* MySQLSettingsView.swift in Sources */,
 				8733F5173338F26F50B92A40 /* MySQLView.swift in Sources */,
 				41E33F39909BEBC929340FDE /* OutdatedPackagesView.swift in Sources */,
+				4E04BA0C4B25C67586363605 /* PostgresService.swift in Sources */,
+				BB827DCC7678C5E627C8A0D0 /* PostgresSettingsView.swift in Sources */,
+				483ED4D9A5EE0E7B08CD120E /* PostgresView.swift in Sources */,
 				FAFCC42ECBD6943EB44EE8AA /* PyenvService.swift in Sources */,
 				A170DDC58F969C10DFB62785 /* PyenvSettingsView.swift in Sources */,
 				006539EAEAAD59A91F57D0EE /* PyenvView.swift in Sources */,

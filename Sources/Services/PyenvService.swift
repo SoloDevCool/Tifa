@@ -617,7 +617,7 @@ class PyenvService: ObservableObject {
 
         let env = pyenvEnvironment
         return await withCheckedContinuation { continuation in
-            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            DispatchQueue.global(qos: .userInitiated).async {
                 let process = Process()
                 let stdoutPipe = Pipe()
                 let stderrPipe = Pipe()

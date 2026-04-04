@@ -7,6 +7,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
     case rvm = "RVM"
     case pyenv = "pyenv"
     case mysql = "MySQL"
+    case postgres = "PostgreSQL"
     case env = "环境变量"
     
     var id: String { rawValue }
@@ -17,6 +18,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
         case .rvm: return "cube"
         case .pyenv: return "leaf"
         case .mysql: return "cylinder"
+        case .postgres: return "externaldrive"
         case .env: return "gearshape.2"
         }
     }
@@ -76,6 +78,22 @@ enum PyenvTab: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - PostgreSQL 子菜单
+
+enum PostgresTab: String, CaseIterable, Identifiable {
+    case databases = "数据库"
+    case settings = "设置"
+    
+    var id: String { rawValue }
+    
+    var icon: String {
+        switch self {
+        case .databases: return "cylinder"
+        case .settings: return "gear"
+        }
+    }
+}
+
 // MARK: - MySQL 子菜单
 
 enum MySQLTab: String, CaseIterable, Identifiable {
@@ -101,6 +119,7 @@ struct ContentView: View {
     @State private var selectedRVMTab: RVMTab = .rubies
     @State private var selectedMySQLTab: MySQLTab = .databases
     @State private var selectedPyenvTab: PyenvTab = .versions
+    @State private var selectedPostgresTab: PostgresTab = .databases
     
     var body: some View {
         HStack(spacing: 0) {
@@ -120,8 +139,8 @@ struct ContentView: View {
         }
         .frame(minWidth: 1000, minHeight: 600)
         .overlay {
-            if homebrewService.isLoading || RVMService.shared.isLoading || MySQLService.shared.isLoading || PyenvService.shared.isLoading {
-                LoadingOverlay(message: homebrewService.isLoading ? homebrewService.loadingMessage : (RVMService.shared.isLoading ? RVMService.shared.loadingMessage : (MySQLService.shared.isLoading ? MySQLService.shared.loadingMessage : PyenvService.shared.loadingMessage)))
+            if homebrewService.isLoading || RVMService.shared.isLoading || MySQLService.shared.isLoading || PyenvService.shared.isLoading || PostgresService.shared.isLoading {
+                LoadingOverlay(message: homebrewService.isLoading ? homebrewService.loadingMessage : (RVMService.shared.isLoading ? RVMService.shared.loadingMessage : (MySQLService.shared.isLoading ? MySQLService.shared.loadingMessage : (PyenvService.shared.isLoading ? PyenvService.shared.loadingMessage : PostgresService.shared.loadingMessage))))
             }
         }
         .alert("错误", isPresented: .constant(homebrewService.lastError != nil)) {
@@ -200,6 +219,14 @@ struct ContentView: View {
                     }
                 }
                 .listStyle(.sidebar)
+            } else if selectedCategory == .postgres {
+                List(selection: $selectedPostgresTab) {
+                    ForEach(PostgresTab.allCases) { tab in
+                        Label(tab.rawValue, systemImage: tab.icon)
+                            .tag(tab)
+                    }
+                }
+                .listStyle(.sidebar)
             } else {
                 // 环境变量 - 单页面，无子菜单
                 VStack {
@@ -253,6 +280,13 @@ struct ContentView: View {
                 PyenvView()
             case .settings:
                 PyenvSettingsView()
+            }
+        case .postgres:
+            switch selectedPostgresTab {
+            case .databases:
+                PostgresView()
+            case .settings:
+                PostgresSettingsView()
             }
         case .env:
             EnvView()
