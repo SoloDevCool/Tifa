@@ -78,6 +78,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
 
 enum HomebrewTab: String, CaseIterable, Identifiable {
     case installed = "已安装"
+    case tap = "Tap"
     case search = "搜索"
     case outdated = "可用更新"
     case settings = "设置"
@@ -87,6 +88,7 @@ enum HomebrewTab: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .installed: return "square.stack.3d.up"
+        case .tap: return "arrow.triangle.branch"
         case .search: return "magnifyingglass"
         case .outdated: return "arrow.triangle.2.circlepath"
         case .settings: return "gear"
@@ -364,6 +366,8 @@ struct ContentView: View {
             switch selectedHomebrewTab {
             case .installed:
                 InstalledPackagesView()
+            case .tap:
+                TapView()
             case .search:
                 SearchView()
             case .outdated:

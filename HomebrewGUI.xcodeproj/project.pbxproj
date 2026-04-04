@@ -35,6 +35,7 @@
 		B62DA26720E4F611CB18671F /* MySQLService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CD185288C364A2B62CB8AA4 /* MySQLService.swift */; };
 		BB827DCC7678C5E627C8A0D0 /* PostgresSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BEE6BFFA59BB13911585DAA /* PostgresSettingsView.swift */; };
 		BCA12BE21AE6C385A69A588A /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 34E8F93B0545D022AE0B4D0C /* SettingsView.swift */; };
+		C8D910E7F3283FF97FA1B3BD /* TapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = ABABBF8B32229875BFF018F4 /* TapView.swift */; };
 		D692DFB052F33724CE8992A4 /* MySQLSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 510FC53F3D3E00A31C3872F6 /* MySQLSettingsView.swift */; };
 		DF68152FFF53DC4F068BD1B4 /* RVMSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C91E1BABE8DF4A21454D260 /* RVMSettingsView.swift */; };
 		E5D875D30AD6F1564874D981 /* RVMService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9458D8294C9A1D934524786E /* RVMService.swift */; };
@@ -68,6 +69,7 @@
 		95C83CB6F758DD4FC4D9918A /* PostgresView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostgresView.swift; sourceTree = "<group>"; };
 		987D9923CEEFAE9313C33EB4 /* HomebrewGUIApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomebrewGUIApp.swift; sourceTree = "<group>"; };
 		9C10CFEC11CE1C3CE03C0B2D /* PyenvView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PyenvView.swift; sourceTree = "<group>"; };
+		ABABBF8B32229875BFF018F4 /* TapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TapView.swift; sourceTree = "<group>"; };
 		BC315BDE90A441A55660A57A /* InstalledPackagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledPackagesView.swift; sourceTree = "<group>"; };
 		BD8ED20428CBF7A8F2D5BAB9 /* HomebrewService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomebrewService.swift; sourceTree = "<group>"; };
 		BE656930F45115B5D6B409D8 /* MySQLView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLView.swift; sourceTree = "<group>"; };
@@ -129,6 +131,7 @@
 				4A18B3C5061EB2A1C2CA6791 /* SearchView.swift */,
 				34E8F93B0545D022AE0B4D0C /* SettingsView.swift */,
 				613146AB6C3333AE7AF9DA0A /* SystemView.swift */,
+				ABABBF8B32229875BFF018F4 /* TapView.swift */,
 				E3EB83E3F0BE18F339128650 /* Components */,
 			);
 			path = Views;
@@ -272,6 +275,7 @@
 				BCA12BE21AE6C385A69A588A /* SettingsView.swift in Sources */,
 				75638BE0BC454DF1590A0CCD /* SystemService.swift in Sources */,
 				944CE7E945BC82D3D3836388 /* SystemView.swift in Sources */,
+				C8D910E7F3283FF97FA1B3BD /* TapView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

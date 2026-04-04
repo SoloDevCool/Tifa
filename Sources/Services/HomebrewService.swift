@@ -174,6 +174,32 @@ class HomebrewService: ObservableObject {
         return FileManager.default.fileExists(atPath: brewPath)
     }
     
+    // MARK: - Tap 管理
+    
+    func fetchTaps() async -> [String] {
+        let result = await executeBrewCommand(arguments: ["tap"])
+        switch result {
+        case .success(let output):
+            return output.components(separatedBy: "\n")
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
+        case .failure:
+            return []
+        }
+    }
+    
+    func addTap(_ tap: String) async -> OperationResult {
+        updateLoadingState(message: "正在添加 tap \(tap)...")
+        let result = await executeBrewCommandWithProgress(arguments: ["tap", tap])
+        return result
+    }
+    
+    func removeTap(_ tap: String) async -> OperationResult {
+        updateLoadingState(message: "正在移除 tap \(tap)...")
+        let result = await executeBrewCommandWithProgress(arguments: ["untap", tap])
+        return result
+    }
+    
     func getDiagnostics() async -> String {
         let result = await executeBrewCommand(arguments: ["doctor"])
         switch result {
