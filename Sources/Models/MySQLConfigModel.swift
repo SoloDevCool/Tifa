@@ -86,7 +86,7 @@ struct MySQLConfigModel: Equatable {
     func toConfigFile() -> String {
         var lines: [String] = []
         lines.append("# MySQL 配置文件")
-        lines.append("# 由 HomebrewGUI 生成")
+        lines.append("# 由 Tifa 生成")
         lines.append("")
         
         // [client]

@@ -1,7 +1,7 @@
 import SwiftUI
 
 @main
-struct HomebrewGUIApp: App {
+struct TifaApp: App {
     var body: some Scene {
         WindowGroup {
             ContentView()

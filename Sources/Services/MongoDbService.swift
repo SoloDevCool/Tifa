@@ -336,7 +336,7 @@ class MongoDbService: ObservableObject {
         let prefix = brewPrefix
         return """
         # MongoDB 配置文件
-        # 由 HomebrewGUI 生成
+        # 由 Tifa 生成
         
         systemLog:
           destination: file

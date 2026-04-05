@@ -157,7 +157,7 @@ class EnvService: ObservableObject {
                 newLines.append("")
             }
             newLines.append("")
-            newLines.append("# Added by HomebrewGUI")
+            newLines.append("# Added by Tifa")
             newLines.append(exportLine)
         }
         

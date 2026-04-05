@@ -1,4 +1,4 @@
-name: HomebrewGUI
+name: Tifa
 options:
   bundleIdPrefix: com.ailisi
   deploymentTarget:
@@ -8,7 +8,7 @@ options:
 
 settings:
   base:
-    PRODUCT_NAME: HomebrewGUI
+    PRODUCT_NAME: Tifa
     MARKETING_VERSION: "1.0.0"
     CURRENT_PROJECT_VERSION: "1"
     SWIFT_VERSION: "5.9"
@@ -18,7 +18,7 @@ settings:
     DEVELOPMENT_TEAM: ""
 
 targets:
-  HomebrewGUI:
+  Tifa:
     type: application
     platform: macOS
     sources:
@@ -26,7 +26,7 @@ targets:
       - path: Resources/Info.plist
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: com.ailisi.homebrewgui
+        PRODUCT_BUNDLE_IDENTIFIER: com.ailisi.tifa
         COMBINE_HIDPI_IMAGES: true
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
     dependencies: []

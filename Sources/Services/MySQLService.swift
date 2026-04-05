@@ -449,7 +449,7 @@ class MySQLService: ObservableObject {
         let prefix = brewPrefix
         return """
         # MySQL 配置文件
-        # 由 HomebrewGUI 生成
+        # 由 Tifa 生成
         
         [client]
         port = 3306

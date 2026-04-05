@@ -1,4 +1,4 @@
-# HomebrewGUI
+# Tifa
 
 一个简洁美观的 macOS Homebrew 可视化管理工具。
 
@@ -38,14 +38,14 @@ brew install xcodegen
 1. 生成 Xcode 项目文件：
 
 ```bash
-cd HomebrewGUI
+cd Tifa
 xcodegen generate
 ```
 
 2. 使用 Xcode 打开生成的项目：
 
 ```bash
-open HomebrewGUI.xcodeproj
+open Tifa.xcodeproj
 ```
 
 3. 在 Xcode 中点击 **Run** 或按 `Cmd + R` 运行应用
@@ -53,10 +53,10 @@ open HomebrewGUI.xcodeproj
 ## 项目结构
 
 ```
-HomebrewGUI/
+Tifa/
 ├── Sources/
 │   ├── App/
-│   │   └── HomebrewGUIApp.swift    # 应用入口
+│   │   └── TifaApp.swift    # 应用入口
 │   ├── Models/
 │   │   └── BrewPackage.swift       # 数据模型
 │   ├── Services/

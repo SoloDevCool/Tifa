@@ -713,7 +713,7 @@ class SettingsViewModel: ObservableObject {
         } else {
             // 写入新配置
             var newLines: [String] = []
-            newLines.append("# Homebrew 镜像源配置 - 由 HomebrewGUI 生成")
+            newLines.append("# Homebrew 镜像源配置 - 由 Tifa 生成")
             newLines.append("export HOMEBREW_API_DOMAIN=\"\(preset.apiDomain)\"")
             newLines.append("export HOMEBREW_BOTTLE_DOMAIN=\"\(preset.bottleDomain)\"")
             if !preset.coreGit.isEmpty {

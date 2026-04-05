@@ -227,7 +227,7 @@ class PyenvService: ObservableObject {
         // pyenv 配置片段
         let configBlock = """
         
-        # pyenv configuration added by HomebrewGUI
+        # pyenv configuration added by Tifa
         export PYENV_ROOT="$HOME/.pyenv"
         export PATH="$PYENV_ROOT/bin:$PATH"
         eval "$(pyenv init --path)"
@@ -285,7 +285,7 @@ class PyenvService: ObservableObject {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             
             // 检测 pyenv 配置块开始
-            if trimmed.contains("# pyenv configuration") || trimmed.contains("Added by HomebrewGUI") && trimmed.contains("pyenv") {
+            if trimmed.contains("# pyenv configuration") || trimmed.contains("Added by Tifa") && trimmed.contains("pyenv") {
                 inPyenvBlock = true
                 removed = true
                 continue
@@ -388,7 +388,7 @@ class PyenvService: ObservableObject {
                         newLines.append("")
                     }
                     newLines.append("")
-                    newLines.append("# Python mirror for pyenv - Added by HomebrewGUI")
+                    newLines.append("# Python mirror for pyenv - Added by Tifa")
                     newLines.append(exportLine)
                 }
                 
@@ -419,7 +419,7 @@ class PyenvService: ObservableObject {
         
         for line in lines {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
-            if trimmed.contains("PYENV_BUILD_MIRROR_URL") || (trimmed.contains("Python mirror for pyenv") && trimmed.contains("HomebrewGUI")) {
+            if trimmed.contains("PYENV_BUILD_MIRROR_URL") || (trimmed.contains("Python mirror for pyenv") && trimmed.contains("Tifa")) {
                 removed = true
             } else {
                 newLines.append(line)
