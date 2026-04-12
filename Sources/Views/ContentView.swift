@@ -1,5 +1,18 @@
 import SwiftUI
 
+// MARK: - 自定义环境键
+
+private struct NavigateToMySQLVersionsKey: EnvironmentKey {
+    static let defaultValue: (() -> Void)? = nil
+}
+
+extension EnvironmentValues {
+    var navigateToMySQLVersions: (() -> Void)? {
+        get { self[NavigateToMySQLVersionsKey.self] }
+        set { self[NavigateToMySQLVersionsKey.self] = newValue }
+    }
+}
+
 // MARK: - 分类分组
 
 enum CategoryGroup: String, CaseIterable, Identifiable {
@@ -200,8 +213,7 @@ enum MongoDbTab: String, CaseIterable, Identifiable {
 
 enum MySQLTab: String, CaseIterable, Identifiable {
     case databases = "数据库"
-    case versions = "版本"
-    case settings = "设置"
+    case versions = "MYSQL 软件包"
     
     var id: String { rawValue }
     
@@ -209,7 +221,6 @@ enum MySQLTab: String, CaseIterable, Identifiable {
         switch self {
         case .databases: return "cylinder"
         case .versions: return "square.stack.3d.up"
-        case .settings: return "gear"
         }
     }
 }
@@ -416,11 +427,11 @@ struct ContentView: View {
         case .mysql:
             switch selectedMySQLTab {
             case .databases:
-                MySQLView()
+                MySQLView(onNavigateToVersions: {
+                    selectedMySQLTab = .versions
+                })
             case .versions:
                 MySQLVersionsView()
-            case .settings:
-                MySQLSettingsView()
             }
         case .pyenv:
             switch selectedPyenvTab {

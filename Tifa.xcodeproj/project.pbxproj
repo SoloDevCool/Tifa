@@ -23,7 +23,7 @@
 		3E0D54885304D578C1213F4F /* MySQLService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05321805876E4CB2A21B90D /* MySQLService.swift */; };
 		40356E1BA9F0AB8AFC51B233 /* MySQLConfigModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8BDE346134D1CD2F8AA05EC /* MySQLConfigModel.swift */; };
 		447A8BC33DFDBE2A2CBF00F6 /* InstalledPackagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70407A1BAC51559D0AF761C9 /* InstalledPackagesView.swift */; };
-		450438625F5328B531B736D2 /* MySQLSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = CAB02F3579C11BFA4FB07376 /* MySQLSettingsView.swift */; };
+
 		502708469DA9003765D8EB0F /* MongoDbService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEABF8AC4A428A93B58BF212 /* MongoDbService.swift */; };
 		63FAFB2D7A0F1D63D93933BD /* RubyVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95B20BD639F829A4F88F155D /* RubyVersion.swift */; };
 		6AA795126BD38BDAB344A106 /* SystemService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91860FD6871E07EFEF9ED164 /* SystemService.swift */; };
@@ -81,7 +81,7 @@
 		B45048FBE56071ECFB7B9128 /* BrewPackage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrewPackage.swift; sourceTree = "<group>"; };
 		BFC604DCDDA08AF27B49D7E6 /* Tifa.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tifa.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C290D840BFF9361202558060 /* NvmSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NvmSettingsView.swift; sourceTree = "<group>"; };
-		CAB02F3579C11BFA4FB07376 /* MySQLSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLSettingsView.swift; sourceTree = "<group>"; };
+
 		D05321805876E4CB2A21B90D /* MySQLService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLService.swift; sourceTree = "<group>"; };
 		D65CA5BA61EB86D4D3A127E8 /* RedisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisService.swift; sourceTree = "<group>"; };
 		DC5E7BC9F3C6F3A8A8581857 /* MySQLView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLView.swift; sourceTree = "<group>"; };
@@ -178,7 +178,7 @@
 				70407A1BAC51559D0AF761C9 /* InstalledPackagesView.swift */,
 				7E5B06FBEBBB338FADA49E70 /* MongoDbSettingsView.swift */,
 				69D3578526D12C86344585DE /* MongoDbView.swift */,
-				CAB02F3579C11BFA4FB07376 /* MySQLSettingsView.swift */,
+	
 				8397BC603A3D530A63469144 /* MySQLVersionsView.swift */,
 				DC5E7BC9F3C6F3A8A8581857 /* MySQLView.swift */,
 				C290D840BFF9361202558060 /* NvmSettingsView.swift */,
@@ -294,7 +294,7 @@
 				9C254FA7574FE004548A98FB /* MongoDbView.swift in Sources */,
 				40356E1BA9F0AB8AFC51B233 /* MySQLConfigModel.swift in Sources */,
 				3E0D54885304D578C1213F4F /* MySQLService.swift in Sources */,
-				450438625F5328B531B736D2 /* MySQLSettingsView.swift in Sources */,
+	
 				A29A00FEAD5FEB2668FE26BC /* MySQLVersionsView.swift in Sources */,
 				A1788C805E1452D8BF67563A /* MySQLView.swift in Sources */,
 				2A4758CAB331B1D3A0724851 /* NvmService.swift in Sources */,

@@ -7,178 +7,89 @@ struct MySQLVersionsView: View {
     @State private var versionToUninstall: MySQLVersionInfo?
     
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                // 当前活跃版本
-                Section {
-                    HStack(spacing: 12) {
-                        Image(systemName: "checkmark.circle.fill")
-                            .font(.title)
-                            .foregroundColor(.green)
-                        
-                        VStack(alignment: .leading) {
-                            Text(viewModel.activeVersion.isEmpty ? "未安装" : viewModel.activeVersion)
-                                .font(.headline)
-                            if !viewModel.activeVersion.isEmpty {
-                                HStack(spacing: 8) {
-                                    if viewModel.isRunning {
-                                        Circle().fill(Color.green).frame(width: 6, height: 6)
-                                        Text("运行中")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    } else {
-                                        Circle().fill(Color.red).frame(width: 6, height: 6)
-                                        Text("已停止")
-                                            .font(.caption)
-                                            .foregroundColor(.secondary)
-                                    }
-                                }
-                            }
-                        }
-                        
-                        Spacer()
-                        
-                        if !viewModel.activeVersion.isEmpty {
-                            if viewModel.isRunning {
-                                Button(action: { Task { await viewModel.stopMySQL() } }) {
-                                    Label("停止", systemImage: "stop.fill")
-                                        .font(.caption)
-                                }
-                                .buttonStyle(.bordered)
-                            } else {
-                                Button(action: { Task { await viewModel.startMySQL() } }) {
-                                    Label("启动", systemImage: "play.fill")
-                                        .font(.caption)
-                                }
-                                .buttonStyle(.borderedProminent)
-                            }
-                        }
-                    }
-                    .padding()
-                    .background(Color(nsColor: .controlBackgroundColor))
-                    .cornerRadius(10)
-                } header: {
-                    Text("当前版本")
-                        .font(.headline)
+        VStack(spacing: 0) {
+            // 标题栏
+            HStack {
+                Text("MySQL 软件包")
+                    .font(.title2.bold())
+                Spacer()
+                Button(action: { Task { await viewModel.load() } }) {
+                    Label("刷新", systemImage: "arrow.clockwise")
+                        .font(.caption)
                 }
-                
-                // 已安装版本
-                Section {
-                    if viewModel.installedVersions.filter({ $0.installed }).isEmpty {
-                        VStack(spacing: 8) {
-                            Text("尚未安装任何 MySQL 版本")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                    } else {
-                        ForEach(viewModel.installedVersions.filter({ $0.installed })) { ver in
-                            HStack(spacing: 12) {
-                                Image(systemName: ver.linked ? "checkmark.circle.fill" : "circle")
-                                    .foregroundColor(ver.linked ? .accentColor : .secondary)
-                                    .font(.title3)
-                                
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(ver.displayName)
-                                        .font(.subheadline.bold())
-                                    Text(ver.formula)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                
-                                Spacer()
-                                
-                                if ver.linked {
-                                    Text("活跃")
-                                        .font(.caption)
-                                        .padding(.horizontal, 8)
-                                        .padding(.vertical, 2)
-                                        .background(Color.accentColor.opacity(0.15))
-                                        .foregroundColor(.accentColor)
-                                        .cornerRadius(4)
-                                } else {
-                                    HStack(spacing: 8) {
-                                        Button("切换") {
-                                            Task { await viewModel.switchVersion(to: ver.formula) }
-                                        }
-                                        .font(.caption)
-                                        .buttonStyle(.bordered)
-                                        .disabled(viewModel.isSwitching)
-                                        
-                                        Button("卸载") {
-                                            versionToUninstall = ver
-                                            showingUninstallConfirm = true
-                                        }
-                                        .font(.caption)
-                                        .buttonStyle(.bordered)
-                                        .foregroundColor(.red)
-                                    }
-                                }
-                            }
-                            .padding(.vertical, 6)
-                            .padding(.horizontal, 12)
-                            .background(Color(nsColor: .controlBackgroundColor))
-                            .cornerRadius(8)
-                        }
-                    }
-                } header: {
-                    Text("已安装版本")
-                        .font(.headline)
-                }
-                
-                // 可安装版本
-                Section {
-                    let uninstalled = MySQLService.availableVersions.filter { v in
-                        !viewModel.installedVersions.contains { $0.formula == v.formula }
-                    }
-                    
-                    if uninstalled.isEmpty {
-                        VStack(spacing: 8) {
-                            Text("所有版本均已安装")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding()
-                    } else {
-                        ForEach(uninstalled, id: \.formula) { v in
-                            HStack(spacing: 12) {
-                                Image(systemName: "arrow.down.circle")
-                                    .foregroundColor(.secondary)
-                                    .font(.title3)
-                                
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(v.name)
-                                        .font(.subheadline.bold())
-                                    Text(v.formula)
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
-                                }
-                                
-                                Spacer()
-                                
-                                Button("安装") {
-                                    viewModel.selectedInstallFormula = v.formula
-                                    viewModel.selectedInstallName = v.name
-                                    showingInstallSheet = true
-                                }
-                                .font(.caption)
-                                .buttonStyle(.borderedProminent)
-                                .disabled(viewModel.isInstalling)
-                            }
-                            .padding(.vertical, 6)
-                            .padding(.horizontal, 12)
-                            .background(Color(nsColor: .controlBackgroundColor))
-                            .cornerRadius(8)
-                        }
-                    }
-                } header: {
-                    Text("可安装版本")
-                        .font(.headline)
-                }
+                .buttonStyle(.bordered)
             }
             .padding()
+            .background(Color(nsColor: .controlBackgroundColor))
+            
+            // 表格列表
+            if #available(macOS 14.0, *) {
+                Table(viewModel.packages) {
+                    TableColumn("软件包名称") { pkg in
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(pkg.displayName)
+                                .font(.body.bold())
+                            Text(pkg.formula)
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                    .width(min: 120, ideal: 150)
+                    
+                    TableColumn("状态") { pkg in
+                        StatusBadge(installed: pkg.installed, pid: pkg.pid)
+                    }
+                    .width(80)
+                    
+                    TableColumn("PID") { pkg in
+                        Text(pkg.pid.map { String($0) } ?? "-")
+                            .font(.system(.body, design: .monospaced))
+                            .foregroundColor(pkg.pid != nil ? .primary : .secondary)
+                    }
+                    .width(80)
+                    
+                    TableColumn("激活") { pkg in
+                        ActivationBadge(activated: pkg.activated)
+                    }
+                    .width(80)
+                    
+                    TableColumn("控制") { pkg in
+                        PackageControlButtons(
+                            pkg: pkg,
+                            isSwitching: viewModel.isSwitching,
+                            isInstalling: viewModel.isInstalling,
+                            onInstall: {
+                                viewModel.selectedInstallFormula = pkg.formula
+                                viewModel.selectedInstallName = pkg.displayName
+                                showingInstallSheet = true
+                            },
+                            onUninstall: {
+                                versionToUninstall = pkg
+                                showingUninstallConfirm = true
+                            },
+                            onActivate: {
+                                Task { await viewModel.switchVersion(to: pkg.formula) }
+                            }
+                        )
+                    }
+                    .width(min: 140)
+                }
+                .tableStyle(.inset(alternatesRowBackgrounds: true))
+            } else {
+                // macOS 13 及以下版本的兼容表格
+                LegacyPackageTable(viewModel: viewModel, onInstall: { pkg in
+                    viewModel.selectedInstallFormula = pkg.formula
+                    viewModel.selectedInstallName = pkg.displayName
+                    showingInstallSheet = true
+                }, onUninstall: { pkg in
+                    versionToUninstall = pkg
+                    showingUninstallConfirm = true
+                }, onActivate: { pkg in
+                    Task { await viewModel.switchVersion(to: pkg.formula) }
+                })
+            }
+            
+            Spacer()
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color(nsColor: .textBackgroundColor))
@@ -190,7 +101,7 @@ struct MySQLVersionsView: View {
                 title: "安装 \(viewModel.selectedInstallName)",
                 formula: viewModel.selectedInstallFormula,
                 isInstalling: viewModel.isInstalling,
-                installLog: viewModel.installLog,
+                installLog: $viewModel.installLog,
                 onInstall: { formula in
                     Task { await viewModel.installVersion(formula: formula) }
                 },
@@ -213,13 +124,196 @@ struct MySQLVersionsView: View {
     }
 }
 
+// MARK: - 状态徽章
+
+struct StatusBadge: View {
+    let installed: Bool
+    let pid: Int?
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(statusColor)
+                .frame(width: 6, height: 6)
+            Text(statusText)
+                .font(.caption)
+                .foregroundColor(statusColor)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(statusColor.opacity(0.15))
+        .cornerRadius(4)
+    }
+    
+    private var statusColor: Color {
+        if pid != nil {
+            return .green
+        } else if installed {
+            return .orange
+        } else {
+            return .secondary
+        }
+    }
+    
+    private var statusText: String {
+        if pid != nil {
+            return "运行中"
+        } else if installed {
+            return "已安装"
+        } else {
+            return "未安装"
+        }
+    }
+}
+
+// MARK: - 激活徽章
+
+struct ActivationBadge: View {
+    let activated: Bool
+    
+    var body: some View {
+        Text(activated ? "已激活" : "-")
+            .font(.caption)
+            .foregroundColor(activated ? .green : .secondary)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(activated ? Color.green.opacity(0.15) : Color.clear)
+            .cornerRadius(4)
+    }
+}
+
+// MARK: - 控制按钮
+
+struct PackageControlButtons: View {
+    let pkg: MySQLVersionInfo
+    let isSwitching: Bool
+    let isInstalling: Bool
+    let onInstall: () -> Void
+    let onUninstall: () -> Void
+    let onActivate: () -> Void
+    
+    var body: some View {
+        HStack(spacing: 8) {
+            if pkg.installed {
+                if pkg.activated {
+                    Button("已激活") {}
+                        .font(.caption)
+                        .buttonStyle(.borderedProminent)
+                        .disabled(true)
+                } else {
+                    Button("激活") {
+                        onActivate()
+                    }
+                    .font(.caption)
+                    .buttonStyle(.borderedProminent)
+                    .disabled(isSwitching)
+                }
+                Button("卸载") {
+                    onUninstall()
+                }
+                .font(.caption)
+                .buttonStyle(.bordered)
+                .foregroundColor(.red)
+            } else {
+                Button("安装") {
+                    onInstall()
+                }
+                .font(.caption)
+                .buttonStyle(.borderedProminent)
+                .disabled(isInstalling)
+            }
+        }
+    }
+}
+
+// MARK: - macOS 13 兼容表格
+
+struct LegacyPackageTable: View {
+    @ObservedObject var viewModel: MySQLVersionsViewModel
+    let onInstall: (MySQLVersionInfo) -> Void
+    let onUninstall: (MySQLVersionInfo) -> Void
+    let onActivate: (MySQLVersionInfo) -> Void
+    
+    var body: some View {
+        VStack(spacing: 0) {
+            // 表头
+            HStack(spacing: 0) {
+                Text("软件包名称")
+                    .frame(width: 150, alignment: .leading)
+                Text("状态")
+                    .frame(width: 80, alignment: .center)
+                Text("PID")
+                    .frame(width: 80, alignment: .center)
+                Text("激活")
+                    .frame(width: 80, alignment: .center)
+                Text("控制")
+                    .frame(minWidth: 140, alignment: .center)
+            }
+            .font(.caption.bold())
+            .foregroundColor(.secondary)
+            .padding(.vertical, 8)
+            .padding(.horizontal, 12)
+            .background(Color(nsColor: .controlBackgroundColor))
+            
+            Divider()
+            
+            // 表格内容
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(viewModel.packages) { pkg in
+                        HStack(spacing: 0) {
+                            // 软件包名称
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(pkg.displayName)
+                                    .font(.body.bold())
+                                Text(pkg.formula)
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                            }
+                            .frame(width: 150, alignment: .leading)
+                            
+                            // 状态
+                            StatusBadge(installed: pkg.installed, pid: pkg.pid)
+                                .frame(width: 80)
+                            
+                            // PID
+                            Text(pkg.pid.map { String($0) } ?? "-")
+                                .font(.system(.body, design: .monospaced))
+                                .foregroundColor(pkg.pid != nil ? .primary : .secondary)
+                                .frame(width: 80, alignment: .center)
+                            
+                            // 激活
+                            ActivationBadge(activated: pkg.activated)
+                                .frame(width: 80)
+                            
+                            // 控制
+                            PackageControlButtons(
+                                pkg: pkg,
+                                isSwitching: viewModel.isSwitching,
+                                isInstalling: viewModel.isInstalling,
+                                onInstall: { onInstall(pkg) },
+                                onUninstall: { onUninstall(pkg) },
+                                onActivate: { onActivate(pkg) }
+                            )
+                            .frame(minWidth: 140)
+                        }
+                        .padding(.vertical, 10)
+                        .padding(.horizontal, 12)
+                        
+                        Divider()
+                    }
+                }
+            }
+        }
+    }
+}
+
 // MARK: - ViewModel
 
 @MainActor
 class MySQLVersionsViewModel: ObservableObject {
-    @Published var installedVersions: [MySQLVersionInfo] = []
+    @Published var packages: [MySQLVersionInfo] = []
     @Published var activeVersion = ""
-    @Published var isRunning = false
     @Published var isSwitching = false
     @Published var isInstalling = false
     @Published var installLog = ""
@@ -230,21 +324,31 @@ class MySQLVersionsViewModel: ObservableObject {
     
     func load() async {
         await service.detectInstalledVersions()
-        installedVersions = service.installedVersions
+        packages = service.installedVersions
         activeVersion = service.activeVersion
-        
-        if !activeVersion.isEmpty {
-            isRunning = await service.isMySQLRunning()
-        }
     }
     
     func switchVersion(to formula: String) async {
         guard !isSwitching else { return }
         isSwitching = true
-        let result = await service.switchVersion(to: formula)
-        if case .failure(let error) = result {
-            installLog = "切换失败: \(error)"
+        installLog = ""
+        
+        // 1. 切换 PATH（永久生效）
+        let pathResult = await service.switchPATH(to: formula)
+        if case .failure(let error) = pathResult {
+            installLog += "PATH 切换失败: \(error)\n"
+        } else if case .success(let msg) = pathResult {
+            installLog += "\(msg)\n"
         }
+        
+        // 2. 切换服务（停止其他版本，启动目标版本）
+        let serviceResult = await service.switchVersion(to: formula)
+        if case .failure(let error) = serviceResult {
+            installLog += "服务切换失败: \(error)"
+        } else if case .success(let msg) = serviceResult {
+            installLog += "\(msg)"
+        }
+        
         await load()
         isSwitching = false
     }
@@ -267,16 +371,6 @@ class MySQLVersionsViewModel: ObservableObject {
         if case .failure(let error) = result {
             installLog = "卸载失败: \(error)"
         }
-        await load()
-    }
-    
-    func startMySQL() async {
-        _ = await service.startMySQL()
-        await load()
-    }
-    
-    func stopMySQL() async {
-        _ = await service.stopMySQL()
         await load()
     }
 }

@@ -504,7 +504,7 @@ struct LatencyRowView: View {
 
 // MARK: - 信息行
 
-struct InfoRow: View {
+private struct InfoRow: View {
     let title: String
     let value: String
     

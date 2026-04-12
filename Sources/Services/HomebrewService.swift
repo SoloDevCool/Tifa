@@ -315,13 +315,12 @@ class HomebrewService: ObservableObject {
                 process.standardError = stderrPipe
                 
                 let semaphore = DispatchSemaphore(value: 0)
+                var collectedLog = ""
                 
                 func appendLog(_ text: String) {
                     let trimmed = text.trimmingCharacters(in: .newlines)
                     guard !trimmed.isEmpty else { return }
-                    DispatchQueue.main.async {
-                        self?.updateLog += trimmed + "\n"
-                    }
+                    collectedLog += trimmed + "\n"
                 }
                 
                 stdoutPipe.fileHandleForReading.readabilityHandler = { handle in
@@ -397,12 +396,13 @@ class HomebrewService: ObservableObject {
                     }
                     
                     let exitCode = process.terminationStatus
+                    let fullLog = collectedLog + (exitCode == 0 ? "✅ 更新完成" : "❌ 更新失败 (exit code \(exitCode))")
                     DispatchQueue.main.async {
-                        self?.updateLog += exitCode == 0 ? "\n✅ 更新完成" : "\n❌ 更新失败 (exit code \(exitCode))"
+                        self?.updateLog = fullLog
                     }
                     
                     if exitCode == 0 {
-                        continuation.resume(returning: .success(self?.updateLog ?? ""))
+                        continuation.resume(returning: .success(fullLog))
                     } else {
                         continuation.resume(returning: .failure(finalStderr.isEmpty ? finalStdout : finalStderr))
                     }

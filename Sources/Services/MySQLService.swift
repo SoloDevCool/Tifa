@@ -9,35 +9,39 @@ struct MySQLDatabase: Identifiable, Hashable {
     let charset: String
 }
 
-/// MySQL 安装版本信息
+/// MySQL 软件包信息
 struct MySQLVersionInfo: Identifiable, Hashable {
-    let id: String          // formula 名称，如 "mysql@8.0"
-    let displayName: String  // 显示名，如 "MySQL 8.0"
-    let formula: String      // brew formula，如 "mysql@8.0"
-    let installed: Bool
-    let linked: Bool         // 当前是否为活跃版本
+    let id: String          // formula 名称，如 "tifa-mysql@8.0"
+    let displayName: String // 显示名，如 "MySQL 8.0"
+    let formula: String      // brew formula，如 "tifa-mysql@8.0"
+    let port: Int            // 端口
+    let dataDir: String      // 数据目录
+    let installed: Bool      // 是否已安装
+    let pid: Int?            // MySQL 服务进程 PID
+    let activated: Bool      // 是否通过 PATH 激活
 }
 
-/// MySQL 服务 - 管理 MySQL/MariaDB
+/// MySQL 服务 - 管理 MySQL（使用 homebrew-tifa-mysql tap）
+/// 支持 MySQL 8.0 和 9.6 双版本同时运行
 @MainActor
 class MySQLService: ObservableObject {
     
     static let shared = MySQLService()
+    
+    /// Homebrew tap 地址
+    static let tapRepo = "SoloDevCool/homebrew-tifa-mysql"
     
     @Published var isLoading = false
     @Published var loadingMessage = ""
     @Published var lastError: String?
     
     /// 所有可安装的 MySQL 版本
-    static let availableVersions: [(name: String, formula: String)] = [
-        ("MySQL 9.x（最新）", "mysql"),
-        ("MySQL 8.4", "mysql@8.4"),
-        ("MySQL 8.0", "mysql@8.0"),
-        ("MySQL 5.7", "mysql@5.7"),
-        ("MariaDB", "mariadb"),
+    static let availableVersions: [(name: String, formula: String, port: Int, dataDir: String)] = [
+        ("MySQL 9.6", "tifa-mysql@9.6", 3306, "tifa-mysql9"),
+        ("MySQL 8.0", "tifa-mysql@8.0", 3306, "tifa-mysql8"),
     ]
     
-    /// 当前活跃版本（linked）
+    /// 当前活跃版本
     @Published var activeVersion: String = ""
     
     /// 所有已安装版本信息
@@ -54,57 +58,29 @@ class MySQLService: ObservableObject {
         return "brew"
     }
     
-    /// MySQL 可执行文件路径
-    private var mysqlBasePath: String {
-        // 常见的安装路径
-        let paths = [
-            "/opt/homebrew/opt/mysql/bin",
-            "/opt/homebrew/opt/mariadb/bin",
-            "/opt/homebrew/opt/mysql@5.7/bin",
-            "/opt/homebrew/opt/mysql@8.0/bin",
-            "/opt/homebrew/opt/mysql@8.4/bin",
-            "/usr/local/opt/mysql/bin",
-            "/usr/local/opt/mariadb/bin",
-        ]
-        for path in paths {
-            if FileManager.default.fileExists(atPath: "\(path)/mysql") {
-                return path
-            }
-        }
-        return ""
+    /// Homebrew 前缀路径
+    private var brewPrefix: String {
+        FileManager.default.fileExists(atPath: "/opt/homebrew") ? "/opt/homebrew" : "/usr/local"
     }
     
-    /// MySQL 服务名称（brew services 使用的名称）
-    private var mysqlServiceName: String? {
-        // 优先使用当前活跃版本
-        if !activeVersion.isEmpty {
-            let brewPrefix = FileManager.default.fileExists(atPath: "/opt/homebrew") ? "/opt/homebrew" : "/usr/local"
-            if FileManager.default.fileExists(atPath: "\(brewPrefix)/opt/\(activeVersion)") {
-                return activeVersion
-            }
-        }
-        // 回退到检测
-        let names = ["mysql", "mariadb", "mysql@5.7", "mysql@8.0", "mysql@8.4"]
-        let brewPrefix = FileManager.default.fileExists(atPath: "/opt/homebrew") ? "/opt/homebrew" : "/usr/local"
-        for name in names {
-            if FileManager.default.fileExists(atPath: "\(brewPrefix)/opt/\(name)") {
-                return name
-            }
-        }
-        return nil
+    /// MySQL 可执行文件路径（基于版本别名命令）
+    func mysqlBinPath(for formula: String) -> String {
+        let optPath = "\(brewPrefix)/opt/\(formula)"
+        return "\(optPath)/bin"
     }
     
     /// MySQL 数据目录
-    private var mysqlDataDir: String {
-        let brewPrefix = FileManager.default.fileExists(atPath: "/opt/homebrew") ? "/opt/homebrew" : "/usr/local"
+    func mysqlDataDir(for formula: String, dataDir: String) -> String {
+        if !dataDir.isEmpty {
+            return "\(brewPrefix)/var/\(dataDir)"
+        }
         return "\(brewPrefix)/var/mysql"
     }
     
     /// 构建 MySQL 命令执行环境
     private var mysqlEnvironment: [String: String] {
         var env = ProcessInfo.processInfo.environment
-        let brewPrefix = FileManager.default.fileExists(atPath: "/opt/homebrew") ? "/opt/homebrew" : "/usr/local"
-        let extraPaths = "\(mysqlBasePath):\(brewPrefix)/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
+        let extraPaths = "\(brewPrefix)/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
         if let currentPath = env["PATH"] {
             env["PATH"] = "\(extraPaths):\(currentPath)"
         } else {
@@ -114,79 +90,144 @@ class MySQLService: ObservableObject {
         return env
     }
     
+    // MARK: - Tap 管理
+    
+    /// 检查 tap 是否已添加
+    func isTapAdded() async -> Bool {
+        let result = await executeCommand(executable: brewPath, arguments: ["tap"])
+        if case .success(let output) = result {
+            return output.contains(Self.tapRepo)
+        }
+        return false
+    }
+    
+    /// 添加 tap
+    func addTap() async -> OperationResult {
+        loadingMessage = "正在添加 Homebrew tap..."
+        let result = await executeCommandWithProgress(executable: brewPath, arguments: ["tap", Self.tapRepo])
+        return result
+    }
+    
     // MARK: - 版本管理
     
-    /// 检测所有已安装的 MySQL 版本及活跃版本
+    /// 检测所有已安装的 MySQL 软件包
     func detectInstalledVersions() async {
-        let brew = brewPath
-        let brewPrefix = FileManager.default.fileExists(atPath: "/opt/homebrew") ? "/opt/homebrew" : "/usr/local"
+        // 1. 获取已安装的 formula 列表
+        let listResult = await executeCommand(executable: brewPath, arguments: ["list", "--formula"], timeoutSeconds: 10)
         
-        // 通过 brew list 获取已安装的 formula
-        let listResult = await executeCommand(executable: brew, arguments: ["list", "--formula"])
-        let installedFormulas: Set<String>
+        // 2. 获取服务列表（不依赖 PID 解析）- 使用较短超时
+        let servicesResult = await executeCommand(executable: brewPath, arguments: ["services", "list"], timeoutSeconds: 5)
+        
+        // 3. 使用 pgrep 查找 MySQL 进程 PID
+        let pgrepResult = await executeCommand(executable: "/usr/bin/pgrep", arguments: ["-f", "mysqld"], timeoutSeconds: 5)
+        
+        // 解析已安装的 formula
+        var installedFormulas: Set<String> = []
         if case .success(let output) = listResult {
             installedFormulas = Set(output.components(separatedBy: .newlines).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty })
-        } else {
-            installedFormulas = []
         }
         
-        // 通过检查 bin/mysql 的 symlink 目标判断活跃版本
-        let mysqlBinPath = "\(brewPrefix)/bin/mysql"
-        var linkedFormula = ""
-        if let dest = try? FileManager.default.destinationOfSymbolicLink(atPath: mysqlBinPath) {
-            // dest 类似 "../Cellar/mysql@8.0/8.0.45_1/bin/mysql"
-            // 或 "../Cellar/mysql/9.6.0/bin/mysql"
-            for ver in Self.availableVersions {
-                if dest.contains("/\(ver.formula)/") {
-                    linkedFormula = ver.formula
-                    break
+        // 解析服务运行状态（只用 Status 列）
+        var startedServices: Set<String> = []
+        if case .success(let output) = servicesResult {
+            for line in output.components(separatedBy: .newlines) {
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if trimmed.contains("started") {
+                    let parts = trimmed.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
+                    if let formula = parts.first {
+                        startedServices.insert(formula)
+                    }
                 }
             }
         }
         
-        // 如果 bin/mysql 不是 symlink 或无匹配，检查 opt 目录下哪个版本有 link
-        if linkedFormula.isEmpty {
-            for ver in Self.availableVersions {
-                let optPath = "\(brewPrefix)/opt/\(ver.formula)"
-                let binPath = "\(optPath)/bin/mysql"
-                // 检查 opt/{formula} 存在且 bin/mysql 可执行（说明该 keg 被选中）
-                if installedFormulas.contains(ver.formula) && FileManager.default.isExecutableFile(atPath: binPath) {
-                    linkedFormula = ver.formula
-                    break
-                }
-            }
+        // 解析 PID（使用 pgrep 的第一行）
+        var runningPID: Int?
+        if case .success(let output) = pgrepResult {
+            let pidStr = output.components(separatedBy: .newlines).first ?? ""
+            runningPID = Int(pidStr.trimmingCharacters(in: .whitespaces))
         }
+        
+        // 检测 PATH 中激活的版本
+        let activatedFormula = getCurrentPathVersion()
         
         var versions: [MySQLVersionInfo] = []
+        
+        // 首先检查已安装的 tifa-mysql 版本
         for ver in Self.availableVersions {
             let formula = ver.formula
             let installed = installedFormulas.contains(formula)
-            let linked = (formula == linkedFormula)
+            let isStarted = installed && startedServices.contains(formula)
+            let pid = isStarted ? runningPID : nil
+            let activated = activatedFormula == formula
             
             versions.append(MySQLVersionInfo(
                 id: formula,
                 displayName: ver.name,
                 formula: formula,
+                port: ver.port,
+                dataDir: ver.dataDir,
                 installed: installed,
-                linked: linked
+                pid: pid,
+                activated: activated
             ))
         }
         
+        // 如果没有检测到 tifa-mysql，检查普通 mysql 或 mysql@X.X
+        let hasTifaMySQL = versions.contains { $0.installed }
+        if !hasTifaMySQL {
+            // 检查普通 mysql 相关包
+            let mysqlFormulas = ["mysql", "mysql@8.0", "mysql@5.7", "mysql@8.4"]
+            for formula in mysqlFormulas {
+                if installedFormulas.contains(formula) {
+                    // 创建一个简化的版本信息
+                    let displayName = formula == "mysql" ? "MySQL (最新)" : formula.replacingOccurrences(of: "@", with: " ")
+                    let isStarted = startedServices.contains(formula)
+                    let pid = isStarted ? runningPID : nil
+                    
+                    versions.append(MySQLVersionInfo(
+                        id: formula,
+                        displayName: displayName,
+                        formula: formula,
+                        port: 3306,
+                        dataDir: "mysql",
+                        installed: true,
+                        pid: pid,
+                        activated: activatedFormula == formula
+                    ))
+                    break  // 只添加第一个匹配的
+                }
+            }
+        }
+        
         installedVersions = versions
-        activeVersion = linkedFormula
+        
+        // 设置 activeVersion：PATH 中激活的版本
+        if let pathVersion = activatedFormula {
+            activeVersion = versions.first { $0.formula == pathVersion }?.displayName ?? pathVersion
+        } else if let firstInstalled = versions.first(where: { $0.installed }) {
+            activeVersion = firstInstalled.displayName
+        } else {
+            activeVersion = ""
+        }
     }
     
     /// 安装指定版本
     func installVersion(formula: String, onOutput: @escaping @MainActor (String) -> Void) async -> OperationResult {
-        let brew = brewPath
+        // 先检查 tap 是否已添加
+        let tapAdded = await isTapAdded()
+        if !tapAdded {
+            let _ = await addTap()
+        }
         
+        let brewExecPath = brewPath
         return await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 let process = Process()
                 let stdoutPipe = Pipe()
                 let stderrPipe = Pipe()
                 
-                process.executableURL = URL(fileURLWithPath: brew)
+                process.executableURL = URL(fileURLWithPath: brewExecPath)
                 process.arguments = ["install", formula]
                 process.environment = ProcessInfo.processInfo.environment
                 process.standardOutput = stdoutPipe
@@ -235,6 +276,7 @@ class MySQLService: ObservableObject {
                     if process.terminationStatus == 0 {
                         Task { @MainActor in
                             appendOutput("\n✅ \(formula) 安装成功")
+                            appendOutput("\n💡 使用 \(self.getClientCommand(for: formula)) -u root 连接数据库")
                             await self.detectInstalledVersions()
                         }
                         continuation.resume(returning: .success(stdout))
@@ -251,36 +293,28 @@ class MySQLService: ObservableObject {
         }
     }
     
-    /// 切换活跃版本（unlink 当前 + link 新版本）
+    /// 启动指定版本的 MySQL（同一时间只能运行一个版本）
     func switchVersion(to formula: String) async -> OperationResult {
-        // 先停止当前服务
-        if let current = mysqlServiceName {
-            _ = await executeCommandWithProgress(executable: brewPath, arguments: ["services", "stop", current])
+        // 先停止所有 MySQL 服务
+        for ver in Self.availableVersions {
+            if ver.formula != formula {
+                _ = await executeCommand(executable: brewPath, arguments: ["services", "stop", ver.formula])
+            }
         }
         
-        // unlink 所有已安装的 MySQL 版本
-        for ver in installedVersions where ver.installed {
-            _ = await executeCommand(executable: brewPath, arguments: ["unlink", ver.formula])
-        }
-        
-        // link 新版本
-        let result = await executeCommandWithProgress(executable: brewPath, arguments: ["link", formula, "--force", "--overwrite"])
-        
+        // 启动目标版本
+        let result = await executeCommandWithProgress(executable: brewPath, arguments: ["services", "start", formula])
         if case .success = result {
             await detectInstalledVersions()
-            return .success("已切换到 \(formula)")
+            return .success("已启动 \(formula)")
         }
         return result
     }
     
     /// 卸载指定版本
     func uninstallVersion(formula: String) async -> OperationResult {
-        // 先停止服务（如果是当前版本）
-        if formula == activeVersion, let serviceName = mysqlServiceName {
-            _ = await executeCommandWithProgress(executable: brewPath, arguments: ["services", "stop", serviceName])
-            // unlink
-            _ = await executeCommand(executable: brewPath, arguments: ["unlink", formula])
-        }
+        // 先停止服务
+        _ = await executeCommandWithProgress(executable: brewPath, arguments: ["services", "stop", formula])
         
         let result = await executeCommandWithProgress(executable: brewPath, arguments: ["uninstall", formula])
         
@@ -293,34 +327,130 @@ class MySQLService: ObservableObject {
     
     // MARK: - 检查可用性
     
+    /// 获取运行中的服务名称
+    private var runningServiceName: String? {
+        for ver in installedVersions where ver.pid != nil {
+            return ver.formula
+        }
+        return nil
+    }
+    
+    /// 获取客户端命令（通过 PATH 指向的版本）
+    func getClientCommand(for formula: String) -> String {
+        let binPath = mysqlBinPath(for: formula)
+        return "\(binPath)/mysql"
+    }
+    
+    /// 获取当前 PATH 中指向的 MySQL 版本
+    /// 优先从 ~/.zshrc 中解析（保证重启后状态持久化）
+    func getCurrentPathVersion() -> String? {
+        // 1. 先从 ~/.zshrc 解析（持久化配置）
+        if let version = parseActiveVersionFromZshrc() {
+            return version
+        }
+        
+        // 2. 备用：检查当前进程的 PATH
+        let env = ProcessInfo.processInfo.environment
+        guard let path = env["PATH"] else { return nil }
+        
+        for ver in Self.availableVersions {
+            let binPath = "\(brewPrefix)/opt/\(ver.formula)/bin"
+            if path.contains(binPath) {
+                return ver.formula
+            }
+        }
+        return nil
+    }
+    
+    /// 从 ~/.zshrc 解析当前激活的 MySQL 版本
+    private func parseActiveVersionFromZshrc() -> String? {
+        let zshrcPath = NSHomeDirectory() + "/.zshrc"
+        guard let content = try? String(contentsOfFile: zshrcPath, encoding: .utf8) else {
+            return nil
+        }
+        
+        // 匹配任何 mysql 相关的 PATH 配置
+        // 例如: "export PATH="/opt/homebrew/opt/tifa-mysql@8.0/bin:$PATH""
+        // 或者: "export PATH="/opt/homebrew/opt/mysql/bin:$PATH""
+        let patterns = [
+            #"export\s+PATH="/opt/homebrew/opt/(tifa-mysql@[\d.]+)/bin:\$PATH""#,
+            #"export\s+PATH="/usr/local/opt/(mysql@[\d.]+)/bin:\$PATH""#,
+            #"export\s+PATH="/opt/homebrew/opt/(mysql)/bin:\$PATH""#,
+            #"export\s+PATH="/usr/local/opt/(mysql)/bin:\$PATH""#
+        ]
+        
+        for pattern in patterns {
+            guard let regex = try? NSRegularExpression(pattern: pattern),
+                  let match = regex.firstMatch(in: content, range: NSRange(content.startIndex..., in: content)),
+                  let range = Range(match.range(at: 1), in: content) else {
+                continue
+            }
+            return String(content[range])
+        }
+        
+        return nil
+    }
+    
+    /// 切换 PATH 到指定版本（永久生效）
+    func switchPATH(to formula: String) async -> OperationResult {
+        let binPath = "\(brewPrefix)/opt/\(formula)/bin"
+        
+        // 检查 zshrc 是否已有 tifa-mysql PATH 配置
+        let zshrcPath = NSHomeDirectory() + "/.zshrc"
+        var zshrcContent = ""
+        if FileManager.default.fileExists(atPath: zshrcPath) {
+            zshrcContent = (try? String(contentsOfFile: zshrcPath, encoding: .utf8)) ?? ""
+        }
+        
+        // 移除旧的 tifa-mysql PATH 配置
+        let oldPattern = #"export\s+PATH="/opt/homebrew/opt/tifa-mysql@[\d.]+/bin:\$PATH""#
+        let newZshrc = zshrcContent.replacingOccurrences(of: oldPattern, with: "", options: .regularExpression)
+        
+        // 添加新的 PATH 配置
+        let newExport = "\nexport PATH=\"\(binPath):$PATH\""
+        let finalZshrc = newZshrc.trimmingCharacters(in: .whitespacesAndNewlines) + newExport
+        
+        do {
+            try finalZshrc.write(toFile: zshrcPath, atomically: true, encoding: .utf8)
+            
+            // 更新当前进程的 PATH（仅影响当前会话）
+            if var currentPath = ProcessInfo.processInfo.environment["PATH"] {
+                // 移除旧路径
+                for ver in Self.availableVersions {
+                    let oldBinPath = "\(brewPrefix)/opt/\(ver.formula)/bin"
+                    currentPath = currentPath.replacingOccurrences(of: "\(oldBinPath):", with: "")
+                    currentPath = currentPath.replacingOccurrences(of: ":\(oldBinPath)", with: "")
+                }
+                // 添加新路径到最前面
+                setenv("PATH", "\(binPath):\(currentPath)", 1)
+            }
+            
+            // 更新 activeVersion
+            activeVersion = formula
+            
+            return .success("PATH 已切换到 \(formula)，请重启终端使配置生效")
+        } catch {
+            return .failure("写入 .zshrc 失败: \(error.localizedDescription)")
+        }
+    }
+    
     /// 检查 MySQL 是否已安装
     func checkMySQLAvailable() -> Bool {
-        return !mysqlBasePath.isEmpty
+        return installedVersions.contains { $0.installed }
     }
     
     /// 检查 MySQL 是否正在运行
     func isMySQLRunning() async -> Bool {
-        guard let serviceName = mysqlServiceName else { return false }
-        let brewPath = self.brewPath
-        let result = await executeCommand(executable: brewPath, arguments: ["services", "list"])
-        if case .success(let output) = result {
-            // 匹配如 "mysql@8.0 started" 或 "mysql started"
-            for line in output.components(separatedBy: .newlines) {
-                let trimmed = line.trimmingCharacters(in: .whitespaces)
-                if trimmed.hasPrefix(serviceName) && trimmed.contains("started") {
-                    return true
-                }
-            }
-        }
-        return false
+        return installedVersions.contains { $0.pid != nil }
     }
     
     /// 获取 MySQL 版本
     func getMySQLVersion() async -> String {
-        if mysqlBasePath.isEmpty {
-            return "未安装"
+        guard let runningVer = installedVersions.first(where: { $0.pid != nil }) else {
+            return "未运行"
         }
-        let result = await executeCommand(executable: "\(mysqlBasePath)/mysql", arguments: ["--version"])
+        let mysqlCmd = getClientCommand(for: runningVer.formula)
+        let result = await executeCommand(executable: mysqlCmd, arguments: ["--version"])
         if case .success(let output) = result {
             // 解析 "mysql  Ver 8.0.35 for macos14.0 on arm64 ..."
             let versionPattern = #"Ver\s+([\d.]+)"#
@@ -336,30 +466,87 @@ class MySQLService: ObservableObject {
     
     /// 获取 MySQL 服务名称
     func getServiceName() -> String {
-        return mysqlServiceName ?? "未安装"
+        return runningServiceName ?? "未安装"
     }
     
-    // MARK: - 服务控制
+    /// 获取当前运行的 MySQL 端口
+    func getRunningPort() -> Int {
+        return installedVersions.first(where: { $0.pid != nil })?.port ?? 3306
+    }
     
-    /// 启动 MySQL
-    func startMySQL() async -> OperationResult {
-        guard let serviceName = mysqlServiceName else {
+    // MARK: - 服务控制（带流式输出）
+
+    /// 启动 MySQL（带实时日志输出）
+    func startMySQLWithProgress(formula: String? = nil, onOutput: @escaping @MainActor (String) -> Void) async -> OperationResult {
+        let targetFormula = formula ?? installedVersions.first(where: { $0.installed })?.formula
+        guard let serviceName = targetFormula else {
+            onOutput("❌ 未检测到 MySQL，请先通过 Homebrew 安装")
             return .failure("未检测到 MySQL，请先通过 Homebrew 安装")
         }
+
+        onOutput("正在启动 \(serviceName)...")
+
+        // 先停止其他版本
+        for ver in installedVersions where ver.installed && ver.formula != serviceName {
+            onOutput("停止其他 MySQL 版本: \(ver.formula)...")
+            _ = await executeCommandWithProgressOnly(executable: brewPath, arguments: ["services", "stop", ver.formula])
+        }
+
+        return await executeCommandStreaming(executable: brewPath, arguments: ["services", "start", serviceName], onOutput: onOutput)
+    }
+
+    /// 停止 MySQL（带实时日志输出）
+    func stopMySQLWithProgress(formula: String? = nil, onOutput: @escaping @MainActor (String) -> Void) async -> OperationResult {
+        let targetFormula = formula ?? runningServiceName
+        guard let serviceName = targetFormula else {
+            onOutput("❌ 未检测到 MySQL")
+            return .failure("未检测到 MySQL")
+        }
+
+        onOutput("正在停止 \(serviceName)...")
+        return await executeCommandStreaming(executable: brewPath, arguments: ["services", "stop", serviceName], onOutput: onOutput)
+    }
+
+    /// 重启 MySQL（带实时日志输出）
+    func restartMySQLWithProgress(formula: String? = nil, onOutput: @escaping @MainActor (String) -> Void) async -> OperationResult {
+        let targetFormula = formula ?? runningServiceName
+        guard let serviceName = targetFormula else {
+            onOutput("❌ 未检测到 MySQL")
+            return .failure("未检测到 MySQL")
+        }
+
+        onOutput("正在重启 \(serviceName)...")
+        return await executeCommandStreaming(executable: brewPath, arguments: ["services", "restart", serviceName], onOutput: onOutput)
+    }
+
+    /// 启动指定版本的 MySQL（同一时间只能运行一个版本）
+    func startMySQL(formula: String? = nil) async -> OperationResult {
+        let targetFormula = formula ?? installedVersions.first(where: { $0.installed })?.formula
+        guard let serviceName = targetFormula else {
+            return .failure("未检测到 MySQL，请先通过 Homebrew 安装")
+        }
+        
+        // 先停止其他版本
+        for ver in installedVersions where ver.installed && ver.formula != serviceName {
+            _ = await executeCommandWithProgress(executable: brewPath, arguments: ["services", "stop", ver.formula])
+        }
+        
         return await executeCommandWithProgress(executable: brewPath, arguments: ["services", "start", serviceName])
     }
     
-    /// 停止 MySQL
-    func stopMySQL() async -> OperationResult {
-        guard let serviceName = mysqlServiceName else {
+    /// 停止指定版本的 MySQL
+    func stopMySQL(formula: String? = nil) async -> OperationResult {
+        let targetFormula = formula ?? runningServiceName
+        guard let serviceName = targetFormula else {
             return .failure("未检测到 MySQL")
         }
         return await executeCommandWithProgress(executable: brewPath, arguments: ["services", "stop", serviceName])
     }
     
-    /// 重启 MySQL
-    func restartMySQL() async -> OperationResult {
-        guard let serviceName = mysqlServiceName else {
+    /// 重启指定版本的 MySQL
+    func restartMySQL(formula: String? = nil) async -> OperationResult {
+        let targetFormula = formula ?? runningServiceName
+        guard let serviceName = targetFormula else {
             return .failure("未检测到 MySQL")
         }
         return await executeCommandWithProgress(executable: brewPath, arguments: ["services", "restart", serviceName])
@@ -404,35 +591,49 @@ class MySQLService: ObservableObject {
     
     // MARK: - 配置信息
     
-    /// Homebrew 前缀路径
-    private var brewPrefix: String {
-        FileManager.default.fileExists(atPath: "/opt/homebrew") ? "/opt/homebrew" : "/usr/local"
+    /// 获取当前运行版本的 formula
+    private var runningFormula: String {
+        installedVersions.first(where: { $0.pid != nil })?.formula ?? "tifa-mysql@8.0"
     }
     
-    /// 获取 MySQL 配置文件路径（无论文件是否存在）
+    /// 获取 MySQL 配置文件路径
+    func getConfigFilePath(for formula: String) -> String {
+        return "\(brewPrefix)/etc/my.cnf.d/\(formula).cnf"
+    }
+    
+    /// 向后兼容：获取当前运行版本的配置文件路径
     func getConfigFilePath() -> String {
-        return "\(brewPrefix)/etc/my.cnf"
+        return getConfigFilePath(for: runningFormula)
     }
     
     /// 配置文件是否存在
-    func configFileExists() -> Bool {
-        let path = getConfigFilePath()
+    func configFileExists(for formula: String) -> Bool {
+        let path = getConfigFilePath(for: formula)
         return FileManager.default.fileExists(atPath: path)
     }
     
+    /// 向后兼容：检查当前运行版本的配置文件
+    func configFileExists() -> Bool {
+        return configFileExists(for: runningFormula)
+    }
+    
     /// 读取 MySQL 配置文件内容
-    func readConfigFile() -> String {
-        let path = getConfigFilePath()
-        guard path != "未找到配置文件",
-              let content = try? String(contentsOfFile: path, encoding: .utf8) else {
+    func readConfigFile(for formula: String) -> String {
+        let path = getConfigFilePath(for: formula)
+        guard let content = try? String(contentsOfFile: path, encoding: .utf8) else {
             return ""
         }
         return content
     }
     
+    /// 向后兼容：读取当前运行版本的配置文件
+    func readConfigFile() -> String {
+        return readConfigFile(for: runningFormula)
+    }
+    
     /// 保存配置文件内容
-    func saveConfigFile(content: String) -> OperationResult {
-        let path = getConfigFilePath()
+    func saveConfigFile(content: String, for formula: String) -> OperationResult {
+        let path = getConfigFilePath(for: formula)
         do {
             // 确保目录存在
             let dir = (path as NSString).deletingLastPathComponent
@@ -444,25 +645,33 @@ class MySQLService: ObservableObject {
         }
     }
     
-    /// 生成默认 my.cnf 内容
-    func generateDefaultConfig() -> String {
-        let prefix = brewPrefix
+    /// 向后兼容：保存到当前运行版本
+    func saveConfigFile(content: String) -> OperationResult {
+        return saveConfigFile(content: content, for: runningFormula)
+    }
+    
+    /// 生成默认 my.cnf 内容（tifa-mysql 版本）
+    func generateDefaultConfig(for formula: String) -> String {
+        let versionInfo = Self.availableVersions.first { $0.formula == formula }
+        let port = versionInfo?.port ?? 3306
+        let dataDir = versionInfo?.dataDir ?? "mysql"
+        let fullDataDir = "\(brewPrefix)/var/\(dataDir)"
+        
         return """
         # MySQL 配置文件
-        # 由 Tifa 生成
+        # \(formula) - 由 Tifa 生成
         
         [client]
-        port = 3306
+        port = \(port)
         default-character-set = utf8mb4
         
         [mysqld]
-        port = 3306
+        port = \(port)
         character-set-server = utf8mb4
         collation-server = utf8mb4_unicode_ci
         
         # 数据存储
-        datadir = \(prefix)/var/mysql
-        socket = /tmp/mysql.sock
+        datadir = \(fullDataDir)
         
         # 连接
         max_connections = 200
@@ -473,9 +682,9 @@ class MySQLService: ObservableObject {
         innodb_log_file_size = 48M
         
         # 日志
-        log_error = \(prefix)/var/mysql/mysql.err
+        log_error = \(fullDataDir)/mysql.err
         slow_query_log = 0
-        slow_query_log_file = \(prefix)/var/mysql/slow.log
+        slow_query_log_file = \(fullDataDir)/slow.log
         long_query_time = 2
         
         # 临时表
@@ -484,29 +693,25 @@ class MySQLService: ObservableObject {
         """
     }
     
+    /// 向后兼容：生成当前运行版本的默认配置
+    func generateDefaultConfig() -> String {
+        return generateDefaultConfig(for: runningFormula)
+    }
+    
     /// 获取 MySQL 端口
     func getMySQLPort() async -> Int {
-        let result = await executeMySQLCommand(sql: "SHOW VARIABLES LIKE 'port'")
-        if case .success(let output) = result {
-            // 输出格式: port\t3306
-            let parts = output.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
-            if parts.count >= 2, let port = Int(parts[1]) {
-                return port
-            }
-        }
-        return 3306
+        return getRunningPort()
     }
     
     /// 获取 MySQL 数据目录
     func getDataDir() async -> String {
-        let result = await executeMySQLCommand(sql: "SHOW VARIABLES LIKE 'datadir'")
-        if case .success(let output) = result {
-            let parts = output.components(separatedBy: .whitespacesAndNewlines).filter { !$0.isEmpty }
-            if parts.count >= 2 {
-                return parts[1]
+        if let running = installedVersions.first(where: { $0.pid != nil }) {
+            let dataDir = running.dataDir
+            if !dataDir.isEmpty {
+                return "\(brewPrefix)/var/\(dataDir)"
             }
         }
-        return mysqlDataDir
+        return "\(brewPrefix)/var/mysql"
     }
     
     /// 获取 MySQL 运行状态变量
@@ -534,9 +739,13 @@ class MySQLService: ObservableObject {
         loadingMessage = message
     }
     
-    private func executeCommand(executable: String, arguments: [String]) async -> OperationResult {
+    /// 带超时的命令执行（默认 10 秒超时）
+    private func executeCommand(executable: String, arguments: [String], timeoutSeconds: TimeInterval = 10) async -> OperationResult {
         let env = mysqlEnvironment
         return await withCheckedContinuation { continuation in
+            var hasResumed = false
+            let lock = NSLock()
+            
             DispatchQueue.global(qos: .userInitiated).async {
                 let process = Process()
                 let stdoutPipe = Pipe()
@@ -548,9 +757,30 @@ class MySQLService: ObservableObject {
                 process.standardOutput = stdoutPipe
                 process.standardError = stderrPipe
                 
+                // 设置超时
+                let timeoutWorkItem = DispatchWorkItem {
+                    lock.lock()
+                    defer { lock.unlock() }
+                    if !hasResumed {
+                        hasResumed = true
+                        process.terminate()
+                    }
+                    lock.unlock()
+                }
+                DispatchQueue.global().asyncAfter(deadline: .now() + timeoutSeconds, execute: timeoutWorkItem)
+                
                 do {
                     try process.run()
                     process.waitUntilExit()
+                    timeoutWorkItem.cancel()
+                    
+                    lock.lock()
+                    guard !hasResumed else {
+                        lock.unlock()
+                        return
+                    }
+                    hasResumed = true
+                    lock.unlock()
                     
                     let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
                     let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
@@ -564,10 +794,21 @@ class MySQLService: ObservableObject {
                         continuation.resume(returning: .failure(errorMsg.isEmpty ? "命令执行失败 (exit code \(process.terminationStatus))" : errorMsg))
                     }
                 } catch {
+                    lock.lock()
+                    guard !hasResumed else {
+                        lock.unlock()
+                        return
+                    }
+                    hasResumed = true
+                    lock.unlock()
                     continuation.resume(returning: .failure("无法执行命令: \(error.localizedDescription)"))
                 }
             }
         }
+    }
+    
+    private func executeCommand(executable: String, arguments: [String]) async -> OperationResult {
+        return await executeCommand(executable: executable, arguments: arguments, timeoutSeconds: 30)
     }
     
     private func executeCommandWithProgress(executable: String, arguments: [String]) async -> OperationResult {
@@ -613,19 +854,133 @@ class MySQLService: ObservableObject {
             }
         }
     }
+
+    /// 仅执行命令不关心输出（用于内部停止其他服务）
+    private func executeCommandWithProgressOnly(executable: String, arguments: [String]) async -> OperationResult {
+        let env = mysqlEnvironment
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let process = Process()
+                let stdoutPipe = Pipe()
+                let stderrPipe = Pipe()
+                
+                process.executableURL = URL(fileURLWithPath: executable)
+                process.arguments = arguments
+                process.environment = env
+                process.standardOutput = stdoutPipe
+                process.standardError = stderrPipe
+                
+                do {
+                    try process.run()
+                    process.waitUntilExit()
+                    
+                    if process.terminationStatus == 0 {
+                        continuation.resume(returning: .success(""))
+                    } else {
+                        continuation.resume(returning: .failure("命令执行失败"))
+                    }
+                } catch {
+                    continuation.resume(returning: .failure("无法执行命令: \(error.localizedDescription)"))
+                }
+            }
+        }
+    }
+
+    /// 流式执行命令，实时输出日志
+    private func executeCommandStreaming(executable: String, arguments: [String], onOutput: @escaping @MainActor (String) -> Void) async -> OperationResult {
+        let env = mysqlEnvironment
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let process = Process()
+                let stdoutPipe = Pipe()
+                let stderrPipe = Pipe()
+                
+                process.executableURL = URL(fileURLWithPath: executable)
+                process.arguments = arguments
+                process.environment = env
+                process.standardOutput = stdoutPipe
+                process.standardError = stderrPipe
+                
+                var collectedOutput = ""
+                
+                let stdoutHandle = stdoutPipe.fileHandleForReading
+                let stderrHandle = stderrPipe.fileHandleForReading
+                
+                stdoutHandle.readabilityHandler = { handle in
+                    let data = handle.availableData
+                    guard !data.isEmpty, let str = String(data: data, encoding: .utf8), !str.isEmpty else { return }
+                    collectedOutput += str
+                    let lines = str.components(separatedBy: .newlines).filter { !$0.isEmpty }
+                    for line in lines {
+                        Task { @MainActor in onOutput(line) }
+                    }
+                }
+                
+                stderrHandle.readabilityHandler = { handle in
+                    let data = handle.availableData
+                    guard !data.isEmpty, let str = String(data: data, encoding: .utf8), !str.isEmpty else { return }
+                    collectedOutput += str
+                    let lines = str.components(separatedBy: .newlines).filter { !$0.isEmpty }
+                    for line in lines {
+                        Task { @MainActor in onOutput(line) }
+                    }
+                }
+                
+                do {
+                    try process.run()
+                    process.waitUntilExit()
+                    
+                    stdoutHandle.readabilityHandler = nil
+                    stderrHandle.readabilityHandler = nil
+                    
+                    // 读取残余数据
+                    let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+                    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+                    let stdout = String(data: stdoutData, encoding: .utf8) ?? ""
+                    let stderr = String(data: stderrData, encoding: .utf8) ?? ""
+                    
+                    if !stdout.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        for line in stdout.components(separatedBy: .newlines).filter({ !$0.isEmpty }) {
+                            Task { @MainActor in onOutput(line) }
+                        }
+                    }
+                    if !stderr.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                        for line in stderr.components(separatedBy: .newlines).filter({ !$0.isEmpty }) {
+                            Task { @MainActor in onOutput(line) }
+                        }
+                    }
+                    
+                    if process.terminationStatus == 0 {
+                        Task { @MainActor in onOutput("✅ 操作完成") }
+                        continuation.resume(returning: .success(collectedOutput))
+                    } else {
+                        let errorMsg = stderr.isEmpty ? stdout : stderr
+                        Task { @MainActor in onOutput("❌ 操作失败 (exit code \(process.terminationStatus))") }
+                        continuation.resume(returning: .failure(errorMsg.isEmpty ? "命令执行失败" : errorMsg))
+                    }
+                } catch {
+                    Task { @MainActor in onOutput("❌ 无法执行命令: \(error.localizedDescription)") }
+                    continuation.resume(returning: .failure("无法执行命令: \(error.localizedDescription)"))
+                }
+            }
+        }
+    }
     
+    /// 执行 MySQL 命令（使用运行中的版本）
     private func executeMySQLCommand(sql: String, database: String? = nil) async -> OperationResult {
+        guard let runningVer = installedVersions.first(where: { $0.pid != nil }) else {
+            return .failure("MySQL 未运行")
+        }
+        
+        let mysqlCmd = getClientCommand(for: runningVer.formula)
         var args = ["-u", "root"]
+        
         if let db = database {
             args += ["-D", db]
         }
         args += ["-e", sql]
         
-        if mysqlBasePath.isEmpty {
-            return .failure("MySQL 未安装")
-        }
-        
-        let result = await executeCommand(executable: "\(mysqlBasePath)/mysql", arguments: args)
+        let result = await executeCommand(executable: mysqlCmd, arguments: args)
         
         // 清理 MySQL 的 tabular 输出（移除表格边框线）
         if case .success(let output) = result {
@@ -638,18 +993,21 @@ class MySQLService: ObservableObject {
         return result
     }
     
+    /// 执行 MySQL 命令（带进度显示）
     func executeMySQLCommandWithProgress(sql: String, database: String? = nil) async -> OperationResult {
+        guard let runningVer = installedVersions.first(where: { $0.pid != nil }) else {
+            return .failure("MySQL 未运行")
+        }
+        
+        let mysqlCmd = getClientCommand(for: runningVer.formula)
         var args = ["-u", "root"]
+        
         if let db = database {
             args += ["-D", db]
         }
         args += ["-e", sql]
         
-        if mysqlBasePath.isEmpty {
-            return .failure("MySQL 未安装")
-        }
-        
-        return await executeCommandWithProgress(executable: "\(mysqlBasePath)/mysql", arguments: args)
+        return await executeCommandWithProgress(executable: mysqlCmd, arguments: args)
     }
     
     private func parseDatabases(output: String) -> [MySQLDatabase] {

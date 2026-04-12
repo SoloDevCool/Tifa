@@ -2,17 +2,18 @@ import Foundation
 
 /// MySQL 配置数据模型
 struct MySQLConfigModel: Equatable {
+    // 版本信息（用于多版本支持）
+    var formula: String = "tifa-mysql@8.0"
+    
     // [client]
     var clientPort = "3306"
     var clientCharset = "utf8mb4"
-    var clientSocket = "/tmp/mysql.sock"
     
     // [mysqld] 基础
     var mysqldPort = "3306"
     var mysqldCharset = "utf8mb4"
     var mysqldCollation = "utf8mb4_unicode_ci"
     var mysqldDatadir = ""
-    var mysqldSocket = "/tmp/mysql.sock"
     var logError = ""
     
     // 连接
@@ -36,15 +37,27 @@ struct MySQLConfigModel: Equatable {
     var tmpTableSize = "64M"
     var maxHeapTableSize = "64M"
     
+    /// 获取默认数据目录路径
+    static func defaultDataDir(for formula: String) -> String {
+        let prefix = FileManager.default.fileExists(atPath: "/opt/homebrew") ? "/opt/homebrew" : "/usr/local"
+        if formula.contains("@9") {
+            return "\(prefix)/var/tifa-mysql9"
+        } else if formula.contains("@8") {
+            return "\(prefix)/var/tifa-mysql8"
+        }
+        return "\(prefix)/var/mysql"
+    }
+    
     /// 从 my.cnf 文本解析配置
-    static func parse(from text: String) -> MySQLConfigModel {
+    static func parse(from text: String, formula: String = "tifa-mysql@8.0") -> MySQLConfigModel {
         var config = MySQLConfigModel()
+        config.formula = formula
         
         // 确定默认数据目录和日志路径
-        let prefix = FileManager.default.fileExists(atPath: "/opt/homebrew") ? "/opt/homebrew" : "/usr/local"
-        config.mysqldDatadir = "\(prefix)/var/mysql"
-        config.logError = "\(prefix)/var/mysql/mysql.err"
-        config.slowQueryLogFile = "\(prefix)/var/mysql/slow.log"
+        let dataDir = defaultDataDir(for: formula)
+        config.mysqldDatadir = dataDir
+        config.logError = "\(dataDir)/mysql.err"
+        config.slowQueryLogFile = "\(dataDir)/slow.log"
         
         guard !text.isEmpty else { return config }
         
@@ -86,14 +99,13 @@ struct MySQLConfigModel: Equatable {
     func toConfigFile() -> String {
         var lines: [String] = []
         lines.append("# MySQL 配置文件")
-        lines.append("# 由 Tifa 生成")
+        lines.append("# \(formula) - 由 Tifa 生成")
         lines.append("")
         
         // [client]
         lines.append("[client]")
         lines.append("port = \(clientPort)")
         lines.append("default-character-set = \(clientCharset)")
-        if !clientSocket.isEmpty { lines.append("socket = \(clientSocket)") }
         lines.append("")
         
         // [mysqld]
@@ -102,7 +114,6 @@ struct MySQLConfigModel: Equatable {
         lines.append("character-set-server = \(mysqldCharset)")
         lines.append("collation-server = \(mysqldCollation)")
         if !mysqldDatadir.isEmpty { lines.append("datadir = \(mysqldDatadir)") }
-        if !mysqldSocket.isEmpty { lines.append("socket = \(mysqldSocket)") }
         
         lines.append("")
         lines.append("# 连接")
@@ -139,7 +150,6 @@ struct MySQLConfigModel: Equatable {
         switch key {
         case "port": config.clientPort = value
         case "default-character-set": config.clientCharset = value
-        case "socket": config.clientSocket = value
         default: break
         }
     }
@@ -150,7 +160,6 @@ struct MySQLConfigModel: Equatable {
         case "character-set-server": config.mysqldCharset = value
         case "collation-server": config.mysqldCollation = value
         case "datadir": config.mysqldDatadir = value
-        case "socket": config.mysqldSocket = value
         case "log_error": config.logError = value
         case "max_connections": config.maxConnections = value
         case "max_connect_errors": config.maxConnectErrors = value

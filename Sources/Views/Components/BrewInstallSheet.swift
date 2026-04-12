@@ -5,11 +5,22 @@ struct BrewInstallSheet: View {
     let title: String
     let formula: String
     let isInstalling: Bool
-    let installLog: String
+    @Binding var installLog: String
     let onInstall: (String) -> Void
     let onClose: () -> Void
     
     @State private var hasStarted = false
+    @State private var refreshTrigger = 0  // 刷新计数器，强制视图更新
+    
+    private var logColor: Color {
+        if installLog.contains("❌") {
+            return .red
+        } else if installLog.contains("✅") {
+            return .green
+        } else {
+            return .primary
+        }
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -83,18 +94,23 @@ struct BrewInstallSheet: View {
             // 日志区域
             ScrollViewReader { proxy in
                 ScrollView {
-                    Text(installLog.isEmpty ? "等待安装..." : installLog)
-                        .font(.system(.caption, design: .monospaced))
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .textSelection(.enabled)
-                        .padding(12)
-                        .background(Color(nsColor: .textBackgroundColor))
-                        .id("logBottom")
-                        .onChange(of: installLog) { _ in
-                            withAnimation {
-                                proxy.scrollTo("logBottom", anchor: .bottom)
-                            }
+                    VStack(alignment: .leading, spacing: 0) {
+                        // 使用 refreshTrigger 作为 id，确保每次更新都重新渲染
+                        Text(installLog.isEmpty ? "等待安装..." : installLog)
+                            .font(.system(.caption, design: .monospaced))
+                            .foregroundColor(logColor)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .textSelection(.enabled)
+                            .padding(12)
+                            .background(Color(nsColor: .textBackgroundColor))
+                            .id(refreshTrigger)
+                    }
+                    .onChange(of: installLog) { _ in
+                        refreshTrigger += 1
+                        withAnimation(.easeOut(duration: 0.1)) {
+                            proxy.scrollTo(refreshTrigger, anchor: .bottom)
                         }
+                    }
                 }
             }
         }
