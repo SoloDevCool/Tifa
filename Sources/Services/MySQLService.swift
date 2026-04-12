@@ -212,14 +212,67 @@ class MySQLService: ObservableObject {
         }
     }
     
-    /// 安装指定版本
+    /// 安装指定版本（带重试机制）
     func installVersion(formula: String, onOutput: @escaping @MainActor (String) -> Void) async -> OperationResult {
+        // 立即输出开始信息
+        Task { @MainActor in onOutput("正在准备安装 \(formula)...\n") }
+        
         // 先检查 tap 是否已添加
         let tapAdded = await isTapAdded()
         if !tapAdded {
+            Task { @MainActor in onOutput("正在添加 Homebrew tap...\n") }
             let _ = await addTap()
+            Task { @MainActor in onOutput("Tap 添加完成\n") }
+        } else {
+            Task { @MainActor in onOutput("Tap 已存在\n") }
         }
         
+        // 执行安装（带重试）
+        let maxRetries = 2
+        var lastError: String = ""
+        
+        for attempt in 0...maxRetries {
+            if attempt > 0 {
+                Task { @MainActor in onOutput("\n⚠️ 安装失败，准备第 \(attempt + 1) 次重试...\n") }
+                try? await Task.sleep(nanoseconds: 2_000_000_000) // 等待 2 秒
+            }
+            
+            Task { @MainActor in onOutput("\n正在下载并安装 \(formula)，请稍候...\n") }
+            
+            let result = await executeInstallCommand(formula: formula, onOutput: onOutput)
+            
+            if case .success(let output) = result {
+                return .success(output)
+            } else if case .failure(let error) = result {
+                lastError = error
+                // 检查是否是网络错误
+                if error.contains("Cannot download") || error.contains("network") || error.contains("Connection") {
+                    continue // 继续重试
+                } else {
+                    // 非网络错误，不再重试
+                    break
+                }
+            }
+        }
+        
+        // 所有重试都失败
+        Task { @MainActor in
+            onOutput("\n" + """
+            ❌ 安装失败 (已重试 \(maxRetries + 1) 次)
+            
+            💡 可能的解决方案:
+            1. 检查网络连接
+            2. 如果使用代理，请在系统设置中配置 Homebrew 代理
+            3. 尝试清理缓存: brew cleanup --prune=all
+            4. 手动在终端执行: brew update && brew install \(formula)
+            """)
+        }
+        
+        return .failure(lastError)
+    }
+    
+    /// 执行 brew install 命令（内部使用）
+    private func executeInstallCommand(formula: String, onOutput: @escaping @MainActor (String) -> Void) async -> OperationResult {
         let brewExecPath = brewPath
         return await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
@@ -273,20 +326,26 @@ class MySQLService: ObservableObject {
                         appendOutput(stderr)
                     }
                     
-                    if process.terminationStatus == 0 {
+                    // 检查安装是否成功：退出码为0 或者输出包含成功标志
+                    let combinedOutput = stdout + stderr
+                    let isSuccess = process.terminationStatus == 0 || 
+                                    combinedOutput.contains("🍺") || 
+                                    combinedOutput.contains("Installing.*\(formula)") ||
+                                    combinedOutput.contains("Cellar/\\(formula)")
+                    
+                    if isSuccess {
                         Task { @MainActor in
-                            appendOutput("\n✅ \(formula) 安装成功")
-                            appendOutput("\n💡 使用 \(self.getClientCommand(for: formula)) -u root 连接数据库")
+                            onOutput("\n✅ \(formula) 安装成功")
+                            onOutput("\n💡 使用 \(self.getClientCommand(for: formula)) -u root 连接数据库")
                             await self.detectInstalledVersions()
                         }
-                        continuation.resume(returning: .success(stdout))
+                        continuation.resume(returning: .success(combinedOutput))
                     } else {
-                        Task { @MainActor in appendOutput("\n❌ 安装失败") }
                         let error = stderr.isEmpty ? stdout : stderr
                         continuation.resume(returning: .failure(error.isEmpty ? "安装失败 (exit code \(process.terminationStatus))" : error))
                     }
                 } catch {
-                    Task { @MainActor in appendOutput("\n❌ 无法启动 brew: \(error.localizedDescription)") }
+                    Task { @MainActor in onOutput("\n❌ 无法启动 brew: \(error.localizedDescription)") }
                     continuation.resume(returning: .failure("无法启动 brew: \(error.localizedDescription)"))
                 }
             }
@@ -478,7 +537,11 @@ class MySQLService: ObservableObject {
 
     /// 启动 MySQL（带实时日志输出）
     func startMySQLWithProgress(formula: String? = nil, onOutput: @escaping @MainActor (String) -> Void) async -> OperationResult {
-        let targetFormula = formula ?? installedVersions.first(where: { $0.installed })?.formula
+        // 优先选择激活的版本（PATH 中设置的版本），其次选择第一个已安装的版本
+        let targetFormula = formula ?? 
+            installedVersions.first(where: { $0.activated })?.formula ??
+            installedVersions.first(where: { $0.installed })?.formula
+        
         guard let serviceName = targetFormula else {
             onOutput("❌ 未检测到 MySQL，请先通过 Homebrew 安装")
             return .failure("未检测到 MySQL，请先通过 Homebrew 安装")
@@ -509,7 +572,11 @@ class MySQLService: ObservableObject {
 
     /// 重启 MySQL（带实时日志输出）
     func restartMySQLWithProgress(formula: String? = nil, onOutput: @escaping @MainActor (String) -> Void) async -> OperationResult {
-        let targetFormula = formula ?? runningServiceName
+        // 优先选择激活的版本（PATH 中设置的版本），其次选择正在运行的版本
+        let targetFormula = formula ?? 
+            installedVersions.first(where: { $0.activated })?.formula ??
+            runningServiceName
+        
         guard let serviceName = targetFormula else {
             onOutput("❌ 未检测到 MySQL")
             return .failure("未检测到 MySQL")
@@ -521,7 +588,9 @@ class MySQLService: ObservableObject {
 
     /// 启动指定版本的 MySQL（同一时间只能运行一个版本）
     func startMySQL(formula: String? = nil) async -> OperationResult {
-        let targetFormula = formula ?? installedVersions.first(where: { $0.installed })?.formula
+        let targetFormula = formula ?? 
+            installedVersions.first(where: { $0.activated })?.formula ??
+            installedVersions.first(where: { $0.installed })?.formula
         guard let serviceName = targetFormula else {
             return .failure("未检测到 MySQL，请先通过 Homebrew 安装")
         }
@@ -545,7 +614,9 @@ class MySQLService: ObservableObject {
     
     /// 重启指定版本的 MySQL
     func restartMySQL(formula: String? = nil) async -> OperationResult {
-        let targetFormula = formula ?? runningServiceName
+        let targetFormula = formula ?? 
+            installedVersions.first(where: { $0.activated })?.formula ??
+            runningServiceName
         guard let serviceName = targetFormula else {
             return .failure("未检测到 MySQL")
         }

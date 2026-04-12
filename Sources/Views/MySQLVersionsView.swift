@@ -126,7 +126,7 @@ struct MySQLVersionsView: View {
 
 // MARK: - 状态徽章
 
-struct StatusBadge: View {
+private struct StatusBadge: View {
     let installed: Bool
     let pid: Int?
     

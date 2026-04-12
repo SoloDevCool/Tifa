@@ -357,7 +357,7 @@ struct DatabaseListView: View {
     }
 }
 
-// MARK: - 配置视图
+// MARK: - 配置视图 (重新设计)
 
 struct ConfigView: View {
     @ObservedObject var viewModel: MySQLViewModel
@@ -365,227 +365,50 @@ struct ConfigView: View {
     @State private var rawConfigText = ""
     @State private var showingSaveConfirm = false
     @State private var hasUnsavedChanges = false
+    @State private var selectedPreset: ConfigPreset = .production
+    
+    enum ConfigPreset: String, CaseIterable {
+        case development = "开发环境"
+        case production = "生产环境"
+        case highPerformance = "高性能"
+        
+        var description: String {
+            switch self {
+            case .development: return "低资源占用，适合本地开发"
+            case .production: return "平衡配置，适合一般生产环境"
+            case .highPerformance: return "高资源占用，最大性能"
+            }
+        }
+    }
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                // 基本信息
-                Section {
-                    VStack(alignment: .leading, spacing: 12) {
-                        InfoRow(title: "版本", value: viewModel.mysqlVersion)
-                        InfoRow(title: "服务名称", value: viewModel.serviceName)
-                        InfoRow(title: "端口", value: "\(viewModel.mysqlPort)")
-                        InfoRow(title: "数据目录", value: viewModel.dataDir)
-                        InfoRow(title: "配置文件", value: viewModel.configFilePath)
-                    }
-                    .padding()
-                    .background(Color(nsColor: .controlBackgroundColor))
-                    .cornerRadius(10)
-                } header: {
-                    Text("基本信息")
-                        .font(.headline)
-                }
+            VStack(spacing: 16) {
+                // 顶部状态卡片
+                StatusCard(viewModel: viewModel)
                 
-                // 运行状态
-                Section {
-                    VStack(alignment: .leading, spacing: 12) {
-                        StatusRow(title: "运行时间", value: viewModel.uptime)
-                        StatusRow(title: "连接数", value: viewModel.connections)
-                        StatusRow(title: "慢查询数", value: viewModel.slowQueries)
-                        StatusRow(title: "已打开表数", value: viewModel.openTables)
-                        StatusRow(title: "每秒查询数", value: viewModel.questionsPerSecond)
+                // 快速操作
+                QuickActionsCard(viewModel: viewModel, showingSaveConfirm: $showingSaveConfirm)
+                
+                // 预设配置选择
+                PresetSelectorCard(
+                    selectedPreset: $selectedPreset,
+                    onApply: { preset in
+                        applyPreset(preset)
                     }
-                    .padding()
-                    .background(Color(nsColor: .controlBackgroundColor))
-                    .cornerRadius(10)
-                } header: {
-                    HStack {
-                        Text("运行状态")
-                            .font(.headline)
-                        Spacer()
-                        Button(action: { Task { await viewModel.refreshStatus() } }) {
-                            Label("刷新", systemImage: "arrow.clockwise")
-                                .font(.caption)
-                        }
-                        .buttonStyle(.bordered)
-                    }
-                }
+                )
                 
                 // 配置编辑器
-                Section {
-                    VStack(alignment: .leading, spacing: 12) {
-                        // 配置文件路径
-                        HStack {
-                            VStack(alignment: .leading, spacing: 4) {
-                                Text("配置文件路径")
-                                    .font(.subheadline)
-                                Text(viewModel.configFilePath)
-                                    .font(.caption)
-                                    .foregroundColor(.secondary)
-                                    .textSelection(.enabled)
-                            }
-                            Spacer()
-                            if !viewModel.configFileExists {
-                                Text("未创建")
-                                    .font(.caption)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 2)
-                                    .background(Color.orange.opacity(0.15))
-                                    .foregroundColor(.orange)
-                                    .cornerRadius(4)
-                            } else {
-                                Image(systemName: "checkmark.circle.fill")
-                                    .font(.caption)
-                                    .foregroundColor(.green)
-                            }
-                        }
-                        .padding(.bottom, 8)
-                        
-                        // 编辑模式切换
-                        Picker("编辑模式", selection: $isEditingRaw) {
-                            Text("可视化编辑").tag(false)
-                            Text("原始文本").tag(true)
-                        }
-                        .pickerStyle(.segmented)
-                        .padding(.bottom, 8)
-                        
-                        if isEditingRaw {
-                            TextEditor(text: $rawConfigText)
-                                .font(.system(.caption, design: .monospaced))
-                                .frame(minHeight: 300)
-                                .padding(8)
-                                .background(Color(nsColor: .textBackgroundColor))
-                                .cornerRadius(8)
-                                .overlay(
-                                    RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.gray.opacity(0.3), lineWidth: 1)
-                                )
-                                .onChange(of: rawConfigText) { _ in
-                                    hasUnsavedChanges = true
-                                }
-                        } else {
-                            MySQLConfigEditorView(
-                                config: $viewModel.config,
-                                onReset: {
-                                    viewModel.loadConfigFromFile()
-                                },
-                                onLoadDefault: {
-                                    viewModel.loadDefaultConfig()
-                                    hasUnsavedChanges = true
-                                }
-                            )
-                            .onChange(of: viewModel.config) { _ in
-                                hasUnsavedChanges = true
-                            }
-                        }
-                        
-                        // 操作按钮
-                        HStack(spacing: 12) {
-                            if !viewModel.configFileExists {
-                                Button(action: {
-                                    viewModel.generateDefaultConfig()
-                                    rawConfigText = viewModel.getRawConfigText()
-                                    hasUnsavedChanges = true
-                                }) {
-                                    Label("生成默认配置", systemImage: "doc.badge.gearshape")
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 10)
-                                        .background(Color.accentColor.opacity(0.1))
-                                        .cornerRadius(8)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                            
-                            Button(action: {
-                                if isEditingRaw {
-                                    viewModel.parseRawConfig(rawConfigText)
-                                } else {
-                                    rawConfigText = viewModel.getRawConfigText()
-                                }
-                                isEditingRaw = true
-                            }) {
-                                Label("导出为文本", systemImage: "doc.on.doc")
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 10)
-                                    .background(Color(nsColor: .controlBackgroundColor))
-                                    .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Button(action: {
-                                if isEditingRaw {
-                                    viewModel.parseRawConfig(rawConfigText)
-                                }
-                                isEditingRaw = false
-                            }) {
-                                Label("从文本导入", systemImage: "doc.on.clipboard")
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 10)
-                                    .background(Color(nsColor: .controlBackgroundColor))
-                                    .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        
-                        // 保存按钮
-                        HStack(spacing: 12) {
-                            Button(action: {
-                                if isEditingRaw {
-                                    viewModel.parseRawConfig(rawConfigText)
-                                }
-                                showingSaveConfirm = true
-                            }) {
-                                Label(hasUnsavedChanges ? "保存并重启" : "保存", systemImage: "square.and.arrow.down")
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 10)
-                                    .background(hasUnsavedChanges ? Color.accentColor : Color(nsColor: .controlBackgroundColor))
-                                    .foregroundColor(hasUnsavedChanges ? .white : .primary)
-                                    .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(!hasUnsavedChanges && viewModel.configFileExists)
-                            
-                            if viewModel.isRunning {
-                                Button(action: { showingSaveConfirm = true }) {
-                                    Label("保存并重启 MySQL", systemImage: "arrow.clockwise")
-                                        .frame(maxWidth: .infinity)
-                                        .padding(.vertical, 10)
-                                        .background(Color.orange)
-                                        .foregroundColor(.white)
-                                        .cornerRadius(8)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                        .padding(.top, 8)
-                    }
-                    .padding()
-                    .background(Color(nsColor: .controlBackgroundColor))
-                    .cornerRadius(10)
-                } header: {
-                    Text("配置编辑器")
-                        .font(.headline)
-                }
+                ConfigurationCard(
+                    viewModel: viewModel,
+                    isEditingRaw: $isEditingRaw,
+                    rawConfigText: $rawConfigText,
+                    hasUnsavedChanges: $hasUnsavedChanges,
+                    showingSaveConfirm: $showingSaveConfirm
+                )
                 
-                // 维护操作
-                Section {
-                    VStack(spacing: 12) {
-                        MaintenanceButton(title: "优化所有表", icon: "wand.and.stars") {
-                            await viewModel.optimizeAllTables()
-                        }
-                        
-                        MaintenanceButton(title: "刷新权限", icon: "lock.rotation") {
-                            await viewModel.flushPrivileges()
-                        }
-                        
-                        MaintenanceButton(title: "查看进程列表", icon: "list.bullet.rectangle") {
-                            await viewModel.showProcessList()
-                        }
-                    }
-                } header: {
-                    Text("维护")
-                        .font(.headline)
-                }
+                // 维护工具
+                MaintenanceCard(viewModel: viewModel)
             }
             .padding()
         }
@@ -607,165 +430,624 @@ struct ConfigView: View {
             Text("配置文件将保存到 \(viewModel.configFilePath)\n是否同时重启 MySQL 使配置生效？")
         }
     }
+    
+    private func applyPreset(_ preset: ConfigPreset) {
+        var config = viewModel.config
+        switch preset {
+        case .development:
+            config.maxConnections = "50"
+            config.innodbBufferPoolSize = "64M"
+            config.innodbLogFileSize = "16M"
+            config.waitTimeout = "600"
+        case .production:
+            config.maxConnections = "200"
+            config.innodbBufferPoolSize = "256M"
+            config.innodbLogFileSize = "48M"
+            config.waitTimeout = "28800"
+        case .highPerformance:
+            config.maxConnections = "500"
+            config.innodbBufferPoolSize = "512M"
+            config.innodbLogFileSize = "128M"
+            config.waitTimeout = "28800"
+        }
+        viewModel.config = config
+        hasUnsavedChanges = true
+    }
 }
 
-// MARK: - 维护按钮
+// MARK: - 状态卡片
+
+struct StatusCard: View {
+    @ObservedObject var viewModel: MySQLViewModel
+    @State private var isRefreshing = false
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "server.rack")
+                    .font(.title2)
+                    .foregroundColor(.accentColor)
+                Text("MySQL 服务器")
+                    .font(.headline)
+                Spacer()
+                StatusBadge(isRunning: viewModel.isRunning)
+                Button(action: {
+                    isRefreshing = true
+                    Task {
+                        await viewModel.refreshStatus()
+                        isRefreshing = false
+                    }
+                }) {
+                    Image(systemName: isRefreshing ? "arrow.triangle.2.circlepath" : "arrow.clockwise")
+                        .rotationEffect(.degrees(isRefreshing ? 360 : 0))
+                        .animation(isRefreshing ? .linear(duration: 1).repeatForever(autoreverses: false) : .default, value: isRefreshing)
+                }
+                .buttonStyle(.borderless)
+                .disabled(isRefreshing)
+            }
+            
+            Divider()
+            
+            LazyVGrid(columns: [
+                GridItem(.flexible()),
+                GridItem(.flexible()),
+                GridItem(.flexible())
+            ], spacing: 16) {
+                StatusItem(title: "版本", value: viewModel.mysqlVersion.isEmpty ? "--" : viewModel.mysqlVersion, icon: "tag")
+                StatusItem(title: "端口", value: "\(viewModel.mysqlPort)", icon: "network")
+                StatusItem(title: "运行时间", value: viewModel.uptime, icon: "clock")
+                StatusItem(title: "连接数", value: viewModel.connections, icon: "person.2")
+                StatusItem(title: "QPS", value: viewModel.questionsPerSecond, icon: "speedometer")
+                StatusItem(title: "慢查询", value: viewModel.slowQueries, icon: "tortoise")
+            }
+            
+            HStack {
+                Image(systemName: "folder")
+                    .foregroundColor(.secondary)
+                Text(viewModel.dataDir)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+                    .lineLimit(1)
+                Spacer()
+            }
+        }
+        .padding()
+        .background(Color(nsColor: .controlBackgroundColor))
+        .cornerRadius(12)
+    }
+}
+
+private struct StatusBadge: View {
+    let isRunning: Bool
+    
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(isRunning ? Color.green : Color.gray)
+                .frame(width: 8, height: 8)
+            Text(isRunning ? "运行中" : "已停止")
+                .font(.caption)
+                .foregroundColor(isRunning ? .green : .secondary)
+        }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 4)
+        .background(isRunning ? Color.green.opacity(0.1) : Color.gray.opacity(0.1))
+        .cornerRadius(8)
+    }
+}
+
+struct StatusItem: View {
+    let title: String
+    let value: String
+    let icon: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(spacing: 4) {
+                Image(systemName: icon)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                Text(title)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            Text(value)
+                .font(.subheadline.bold())
+                .lineLimit(1)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - 快速操作卡片
+
+struct QuickActionsCard: View {
+    @ObservedObject var viewModel: MySQLViewModel
+    @Binding var showingSaveConfirm: Bool
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "bolt.fill")
+                    .foregroundColor(.orange)
+                Text("快速操作")
+                    .font(.headline)
+            }
+            
+            HStack(spacing: 12) {
+                QuickActionButton(
+                    title: viewModel.isRunning ? "重启服务" : "启动服务",
+                    icon: viewModel.isRunning ? "arrow.clockwise" : "play.fill",
+                    color: viewModel.isRunning ? .orange : .green
+                ) {
+                    if viewModel.isRunning {
+                        await viewModel.restartMySQL()
+                    } else {
+                        await viewModel.startMySQL()
+                    }
+                }
+                
+                QuickActionButton(
+                    title: "打开配置",
+                    icon: "doc.text",
+                    color: .blue
+                ) {
+                    if !viewModel.configFilePath.isEmpty {
+                        NSWorkspace.shared.selectFile(viewModel.configFilePath, inFileViewerRootedAtPath: "")
+                    }
+                }
+                
+                QuickActionButton(
+                    title: "打开终端",
+                    icon: "terminal",
+                    color: .purple
+                ) {
+                    NSWorkspace.shared.open(URL(fileURLWithPath: "/System/Applications/Utilities/Terminal.app"))
+                }
+                
+                QuickActionButton(
+                    title: "保存配置",
+                    icon: "square.and.arrow.down",
+                    color: .accentColor
+                ) {
+                    showingSaveConfirm = true
+                }
+            }
+        }
+        .padding()
+        .background(Color(nsColor: .controlBackgroundColor))
+        .cornerRadius(12)
+    }
+}
+
+struct QuickActionButton: View {
+    let title: String
+    let icon: String
+    let color: Color
+    let action: () async -> Void
+    
+    @State private var isLoading = false
+    
+    var body: some View {
+        Button(action: {
+            isLoading = true
+            Task {
+                await action()
+                isLoading = false
+            }
+        }) {
+            VStack(spacing: 6) {
+                if isLoading {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                } else {
+                    Image(systemName: icon)
+                        .font(.title3)
+                }
+                Text(title)
+                    .font(.caption)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(color.opacity(0.1))
+            .foregroundColor(color)
+            .cornerRadius(8)
+        }
+        .buttonStyle(.plain)
+        .disabled(isLoading)
+    }
+}
+
+// MARK: - 预设选择卡片
+
+struct PresetSelectorCard: View {
+    @Binding var selectedPreset: ConfigView.ConfigPreset
+    let onApply: (ConfigView.ConfigPreset) -> Void
+    
+    private typealias Preset = ConfigView.ConfigPreset
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "wand.and.stars")
+                    .foregroundColor(.purple)
+                Text("快速预设")
+                    .font(.headline)
+                Spacer()
+            }
+            
+            HStack(spacing: 12) {
+                ForEach(ConfigView.ConfigPreset.allCases, id: \.self) { preset in
+                    MySQLPresetButton(
+                        preset: preset,
+                        isSelected: selectedPreset == preset,
+                        onSelect: {
+                            selectedPreset = preset
+                            onApply(preset)
+                        }
+                    )
+                }
+            }
+        }
+        .padding()
+        .background(Color(nsColor: .controlBackgroundColor))
+        .cornerRadius(12)
+    }
+}
+
+private struct MySQLPresetButton: View {
+    let preset: ConfigView.ConfigPreset
+    let isSelected: Bool
+    let onSelect: () -> Void
+    
+    var icon: String {
+        switch preset {
+        case .development: return "laptopcomputer"
+        case .production: return "server.rack"
+        case .highPerformance: return "bolt.fill"
+        }
+    }
+    
+    var color: Color {
+        switch preset {
+        case .development: return .blue
+        case .production: return .green
+        case .highPerformance: return .orange
+        }
+    }
+    
+    var body: some View {
+        Button(action: onSelect) {
+            VStack(spacing: 8) {
+                Image(systemName: icon)
+                    .font(.title2)
+                Text(preset.rawValue)
+                    .font(.subheadline.bold())
+                Text(preset.description)
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+                    .multilineTextAlignment(.center)
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 12)
+            .background(isSelected ? color.opacity(0.2) : Color(nsColor: .textBackgroundColor))
+            .overlay(
+                RoundedRectangle(cornerRadius: 8)
+                    .stroke(isSelected ? color : Color.clear, lineWidth: 2)
+            )
+            .foregroundColor(isSelected ? color : .primary)
+            .cornerRadius(8)
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+// MARK: - 配置编辑器卡片
+
+struct ConfigurationCard: View {
+    @ObservedObject var viewModel: MySQLViewModel
+    @Binding var isEditingRaw: Bool
+    @Binding var rawConfigText: String
+    @Binding var hasUnsavedChanges: Bool
+    @Binding var showingSaveConfirm: Bool
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "slider.horizontal.3")
+                    .foregroundColor(.accentColor)
+                Text("配置编辑")
+                    .font(.headline)
+                Spacer()
+                
+                Picker("", selection: $isEditingRaw) {
+                    Text("可视化").tag(false)
+                    Text("文本").tag(true)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 150)
+            }
+            
+            Divider()
+            
+            if isEditingRaw {
+                TextEditor(text: $rawConfigText)
+                    .font(.system(.caption, design: .monospaced))
+                    .frame(minHeight: 250)
+                    .padding(8)
+                    .background(Color(nsColor: .textBackgroundColor))
+                    .cornerRadius(8)
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 8)
+                            .stroke(Color.gray.opacity(0.3), lineWidth: 1)
+                    )
+                    .onChange(of: rawConfigText) { _ in
+                        hasUnsavedChanges = true
+                    }
+            } else {
+                MySQLConfigEditorView(config: $viewModel.config)
+                    .onChange(of: viewModel.config) { _ in
+                        hasUnsavedChanges = true
+                    }
+            }
+            
+            HStack(spacing: 12) {
+                if !viewModel.configFileExists {
+                    Button(action: {
+                        viewModel.generateDefaultConfig()
+                        rawConfigText = viewModel.getRawConfigText()
+                        hasUnsavedChanges = true
+                    }) {
+                        Label("生成默认配置", systemImage: "doc.badge.gearshape")
+                    }
+                    .buttonStyle(.bordered)
+                }
+                
+                Spacer()
+                
+                if hasUnsavedChanges {
+                    Button(action: {
+                        showingSaveConfirm = true
+                    }) {
+                        Label("保存配置", systemImage: "square.and.arrow.down")
+                    }
+                    .buttonStyle(.borderedProminent)
+                }
+            }
+            .padding(.top, 8)
+        }
+        .padding()
+        .background(Color(nsColor: .controlBackgroundColor))
+        .cornerRadius(12)
+    }
+}
+
+// MARK: - 维护卡片
+
+struct MaintenanceCard: View {
+    @ObservedObject var viewModel: MySQLViewModel
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Image(systemName: "wrench.and.screwdriver")
+                    .foregroundColor(.secondary)
+                Text("维护工具")
+                    .font(.headline)
+            }
+            
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                MaintenanceButton(title: "优化所有表", icon: "wand.and.stars", color: .blue) {
+                    await viewModel.optimizeAllTables()
+                }
+                
+                MaintenanceButton(title: "刷新权限", icon: "lock.rotation", color: .purple) {
+                    await viewModel.flushPrivileges()
+                }
+                
+                MaintenanceButton(title: "查看进程", icon: "list.bullet.rectangle", color: .orange) {
+                    await viewModel.showProcessList()
+                }
+                
+                MaintenanceButton(title: "检查状态", icon: "checkmark.shield", color: .green) {
+                    await viewModel.refreshStatus()
+                    return "状态已刷新\n版本: \(viewModel.mysqlVersion)\n连接数: \(viewModel.connections)\n运行时间: \(viewModel.uptime)"
+                }
+            }
+        }
+        .padding()
+        .background(Color(nsColor: .controlBackgroundColor))
+        .cornerRadius(12)
+    }
+}
 
 struct MaintenanceButton: View {
     let title: String
     let icon: String
+    let color: Color
     let action: () async -> String
     
     @State private var showingResult = false
     @State private var resultText = ""
+    @State private var isLoading = false
     
     var body: some View {
         Button(action: {
+            isLoading = true
             Task {
                 resultText = await action()
+                isLoading = false
                 showingResult = true
             }
         }) {
             HStack {
-                Label(title, systemImage: icon)
+                if isLoading {
+                    ProgressView()
+                        .scaleEffect(0.8)
+                } else {
+                    Image(systemName: icon)
+                        .foregroundColor(color)
+                }
+                Text(title)
+                    .font(.subheadline)
                 Spacer()
-                Image(systemName: "chevron.right")
-                    .foregroundColor(.secondary)
             }
             .padding()
-            .background(Color(nsColor: .controlBackgroundColor))
-            .cornerRadius(10)
+            .background(Color(nsColor: .textBackgroundColor))
+            .cornerRadius(8)
         }
         .buttonStyle(.plain)
+        .disabled(isLoading)
         .sheet(isPresented: $showingResult) {
             CommandResultSheet(commandResultText: resultText, onClose: { showingResult = false })
         }
     }
 }
 
-// MARK: - 配置编辑器组件
+// MARK: - 配置编辑器组件 (重新设计)
 
 struct MySQLConfigEditorView: View {
     @Binding var config: MySQLConfigModel
-    let onReset: () -> Void
-    let onLoadDefault: () -> Void
+    @State private var expandedSections: Set<String> = ["basic", "connection", "innodb"]
     
     var body: some View {
-        VStack(spacing: 16) {
-            // [client] 区段
-            ConfigSectionHeader(title: "[client]", icon: "person")
-            
-            VStack(spacing: 10) {
-                ConfigField(title: "端口 (port)", placeholder: "3306", text: $config.clientPort)
-                ConfigField(title: "默认字符集 (default-character-set)", placeholder: "utf8mb4", text: $config.clientCharset)
+        VStack(spacing: 12) {
+            ConfigSection(
+                title: "基础设置",
+                icon: "server.rack",
+                isExpanded: expandedSections.contains("basic"),
+                onToggle: { toggleSection("basic") }
+            ) {
+                ConfigRow(label: "端口", description: "MySQL 服务端口", value: $config.mysqldPort)
+                ConfigRow(label: "字符集", description: "服务器默认字符集", value: $config.mysqldCharset)
+                ConfigRow(label: "排序规则", description: "默认排序规则", value: $config.mysqldCollation)
+                ConfigRow(label: "数据目录", description: "数据库文件存储位置", value: $config.mysqldDatadir)
             }
             
-            // [mysqld] 区段
-            ConfigSectionHeader(title: "[mysqld]", icon: "server.rack")
-            
-            VStack(spacing: 10) {
-                ConfigField(title: "端口 (port)", placeholder: "3306", text: $config.mysqldPort)
-                ConfigField(title: "字符集 (character-set-server)", placeholder: "utf8mb4", text: $config.mysqldCharset)
-                ConfigField(title: "排序规则 (collation-server)", placeholder: "utf8mb4_unicode_ci", text: $config.mysqldCollation)
-                ConfigField(title: "数据目录 (datadir)", placeholder: "/opt/homebrew/var/mysql", text: $config.mysqldDatadir)
-                ConfigField(title: "错误日志 (log_error)", placeholder: "/opt/homebrew/var/mysql/mysql.err", text: $config.logError)
+            ConfigSection(
+                title: "连接设置",
+                icon: "network",
+                isExpanded: expandedSections.contains("connection"),
+                onToggle: { toggleSection("connection") }
+            ) {
+                ConfigRow(label: "最大连接数", description: "允许的最大并发连接", value: $config.maxConnections)
+                ConfigRow(label: "等待超时", description: "空闲连接超时时间(秒)", value: $config.waitTimeout)
+                ConfigRow(label: "连接错误上限", description: "阻止主机前的错误次数", value: $config.maxConnectErrors)
             }
             
-            // [mysqld] 连接
-            ConfigSectionHeader(title: "连接设置", icon: "network")
-            
-            VStack(spacing: 10) {
-                ConfigField(title: "最大连接数 (max_connections)", placeholder: "200", text: $config.maxConnections)
-                ConfigField(title: "最大连接错误数 (max_connect_errors)", placeholder: "100", text: $config.maxConnectErrors)
-                ConfigField(title: "等待超时秒数 (wait_timeout)", placeholder: "28800", text: $config.waitTimeout)
+            ConfigSection(
+                title: "InnoDB 引擎",
+                icon: "internaldrive",
+                isExpanded: expandedSections.contains("innodb"),
+                onToggle: { toggleSection("innodb") }
+            ) {
+                ConfigRow(label: "缓冲池大小", description: "InnoDB 缓存数据的大小", value: $config.innodbBufferPoolSize)
+                ConfigRow(label: "日志文件大小", description: "事务日志文件大小", value: $config.innodbLogFileSize)
+                ConfigToggleRow(label: "独立表空间", description: "每个表使用独立 .ibd 文件", isOn: $config.innodbFilePerTable)
             }
             
-            // [mysqld] InnoDB
-            ConfigSectionHeader(title: "InnoDB 引擎", icon: "internaldrive")
-            
-            VStack(spacing: 10) {
-                ConfigField(title: "缓冲池大小 (innodb_buffer_pool_size)", placeholder: "256M", text: $config.innodbBufferPoolSize)
-                ConfigField(title: "日志文件大小 (innodb_log_file_size)", placeholder: "48M", text: $config.innodbLogFileSize)
-                ConfigField(title: "日志模式 (innodb_flush_log_at_trx_commit)", placeholder: "1", text: $config.innodbFlushLog)
-                ConfigField(title: "文件每表模式 (innodb_file_per_table)", placeholder: "1", text: $config.innodbFilePerTable)
+            ConfigSection(
+                title: "日志设置",
+                icon: "doc.text",
+                isExpanded: expandedSections.contains("log"),
+                onToggle: { toggleSection("log") }
+            ) {
+                ConfigToggleRow(label: "慢查询日志", description: "记录执行时间长的查询", isOn: $config.slowQueryLog)
+                if config.slowQueryLog {
+                    ConfigRow(label: "慢查询阈值", description: "记录超过此时间的查询(秒)", value: $config.longQueryTime)
+                }
             }
-            
-            // [mysqld] 日志
-            ConfigSectionHeader(title: "日志设置", icon: "doc.text")
-            
-            VStack(spacing: 10) {
-                ConfigToggle(title: "开启慢查询日志 (slow_query_log)", isOn: $config.slowQueryLog)
-                ConfigField(title: "慢查询时间阈值(秒)", placeholder: "2", text: $config.longQueryTime)
-                ConfigField(title: "慢查询日志路径", placeholder: "/opt/homebrew/var/mysql/slow.log", text: $config.slowQueryLogFile)
-            }
-            
-            // [mysqld] 缓存
-            ConfigSectionHeader(title: "缓存设置", icon: "memorychip")
-            
-            VStack(spacing: 10) {
-                ConfigField(title: "查询缓存大小 (query_cache_size)", placeholder: "0", text: $config.queryCacheSize)
-                ConfigField(title: "临时表大小 (tmp_table_size)", placeholder: "64M", text: $config.tmpTableSize)
-                ConfigField(title: "最大堆表大小 (max_heap_table_size)", placeholder: "64M", text: $config.maxHeapTableSize)
-            }
+        }
+    }
+    
+    private func toggleSection(_ id: String) {
+        if expandedSections.contains(id) {
+            expandedSections.remove(id)
+        } else {
+            expandedSections.insert(id)
         }
     }
 }
 
-// MARK: - 配置编辑器辅助组件
+// MARK: - 可折叠配置区段
 
-struct ConfigSectionHeader: View {
+struct ConfigSection<Content: View>: View {
     let title: String
     let icon: String
+    let isExpanded: Bool
+    let onToggle: () -> Void
+    @ViewBuilder let content: Content
     
     var body: some View {
-        HStack(spacing: 8) {
-            Image(systemName: icon)
-                .foregroundColor(.secondary)
-            Text(title)
-                .font(.subheadline.bold())
-                .foregroundColor(.secondary)
-            Divider()
-        }
-        .padding(.top, 4)
-    }
-}
-
-struct ConfigField: View {
-    let title: String
-    let placeholder: String
-    @Binding var text: String
-    
-    var body: some View {
-        HStack(spacing: 12) {
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .frame(width: 240, alignment: .leading)
-                .fixedSize(horizontal: true, vertical: false)
+        VStack(alignment: .leading, spacing: 0) {
+            Button(action: onToggle) {
+                HStack {
+                    Image(systemName: icon)
+                        .foregroundColor(.accentColor)
+                    Text(title)
+                        .font(.subheadline.bold())
+                        .foregroundColor(.primary)
+                    Spacer()
+                    Image(systemName: isExpanded ? "chevron.up" : "chevron.down")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                .padding()
+                .background(Color(nsColor: .textBackgroundColor))
+            }
+            .buttonStyle(.plain)
             
-            TextField(placeholder, text: $text)
+            if isExpanded {
+                VStack(spacing: 8) {
+                    content
+                }
+                .padding()
+            }
+        }
+        .background(Color(nsColor: .controlBackgroundColor))
+        .cornerRadius(8)
+    }
+}
+
+// MARK: - 配置行
+
+struct ConfigRow: View {
+    let label: String
+    let description: String
+    @Binding var value: String
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack {
+                Text(label)
+                    .font(.subheadline)
+                Text(description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            TextField("", text: $value)
                 .textFieldStyle(.roundedBorder)
-                .font(.system(.caption, design: .monospaced))
+                .font(.system(.body, design: .monospaced))
         }
     }
 }
 
-struct ConfigToggle: View {
-    let title: String
+struct ConfigToggleRow: View {
+    let label: String
+    let description: String
     @Binding var isOn: Bool
     
     var body: some View {
-        HStack(spacing: 12) {
-            Text(title)
-                .font(.caption)
-                .foregroundColor(.secondary)
-                .frame(width: 240, alignment: .leading)
-                .fixedSize(horizontal: true, vertical: false)
-            
+        HStack {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(label)
+                    .font(.subheadline)
+                Text(description)
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
             Spacer()
-            
             Toggle("", isOn: $isOn)
-                .toggleStyle(.switch)
                 .labelsHidden()
         }
     }

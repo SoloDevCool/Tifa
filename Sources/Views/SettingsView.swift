@@ -678,7 +678,7 @@ class SettingsViewModel: ObservableObject {
     /// 切换镜像源
     func switchMirror(to preset: MirrorPreset) -> String {
         let home = NSHomeDirectory()
-        let shell = ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
+        let shell = Foundation.ProcessInfo.processInfo.environment["SHELL"] ?? "/bin/zsh"
         let configFile: String
         if shell.contains("zsh") {
             configFile = home + "/.zshrc"
@@ -780,7 +780,7 @@ class SettingsViewModel: ObservableObject {
             brewPrefix = ""
         }
         
-        let env = ProcessInfo.processInfo.environment
+        let env = Foundation.ProcessInfo.processInfo.environment
         let path = env["PATH"] ?? ""
         var procEnv = env
         procEnv["PATH"] = "/opt/homebrew/bin:/opt/homebrew/sbin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:\(path)"

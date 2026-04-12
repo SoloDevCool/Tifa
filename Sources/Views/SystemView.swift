@@ -2,37 +2,81 @@ import SwiftUI
 
 struct SystemView: View {
     @StateObject private var viewModel = SystemViewModel()
+    @State private var selectedTab: MonitorTab = .metrics
+    
+    enum MonitorTab: String, CaseIterable {
+        case metrics = "系统指标"
+        case processes = "进程监控"
+        
+        var icon: String {
+            switch self {
+            case .metrics: return "gauge"
+            case .processes: return "list.bullet"
+            }
+        }
+    }
     
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                // 顶部栏
-                HStack {
-                    Text("系统监控")
-                        .font(.title2)
-                        .fontWeight(.bold)
-                    Spacer()
-                    
-                    Picker("刷新间隔", selection: $viewModel.refreshInterval) {
-                        Text("3秒").tag(3.0)
-                        Text("5秒").tag(5.0)
-                        Text("10秒").tag(10.0)
-                        Text("30秒").tag(30.0)
-                    }
-                    .pickerStyle(.segmented)
-                    .frame(width: 260)
-                    .onChange(of: viewModel.refreshInterval) { _ in
-                        viewModel.restartTimer()
-                    }
-                    
-                    Button(action: { Task { await viewModel.refresh() } }) {
-                        Label("刷新", systemImage: "arrow.clockwise")
+        VStack(spacing: 0) {
+            // 顶部栏
+            HStack {
+                Text("系统监控")
+                    .font(.title2)
+                    .fontWeight(.bold)
+                Spacer()
+                
+                Picker("标签", selection: $selectedTab) {
+                    ForEach(MonitorTab.allCases, id: \.self) { tab in
+                        Label(tab.rawValue, systemImage: tab.icon).tag(tab)
                     }
                 }
-                .padding(.horizontal)
-                .padding(.top, 12)
+                .pickerStyle(.segmented)
+                .frame(width: 220)
                 
-                Divider()
+                Picker("刷新间隔", selection: $viewModel.refreshInterval) {
+                    Text("3秒").tag(3.0)
+                    Text("5秒").tag(5.0)
+                    Text("10秒").tag(10.0)
+                    Text("30秒").tag(30.0)
+                }
+                .pickerStyle(.segmented)
+                .frame(width: 200)
+                .onChange(of: viewModel.refreshInterval) { _ in
+                    viewModel.restartTimer()
+                }
+                
+                Button(action: { Task { await viewModel.refresh() } }) {
+                    Label("刷新", systemImage: "arrow.clockwise")
+                }
+            }
+            .padding(.horizontal)
+            .padding(.top, 12)
+            
+            Divider()
+            .padding(.top, 8)
+            
+            // 内容区
+            Group {
+                switch selectedTab {
+                case .metrics:
+                    metricsContent
+                case .processes:
+                    ProcessMonitorView(viewModel: viewModel)
+                }
+            }
+        }
+        .task {
+            viewModel.startMonitoring()
+        }
+        .onDisappear {
+            viewModel.stopMonitoring()
+        }
+    }
+    
+    @ViewBuilder
+    private var metricsContent: some View {
+        ScrollView {
+            VStack(spacing: 16) {
                 
                 // 主要指标卡片（3 列）
                 LazyVGrid(columns: [
@@ -142,12 +186,6 @@ struct SystemView: View {
                 .padding(.horizontal)
                 .padding(.bottom, 24)
             }
-        }
-        .task {
-            viewModel.startMonitoring()
-        }
-        .onDisappear {
-            viewModel.stopMonitoring()
         }
     }
     
@@ -278,6 +316,7 @@ struct SystemInfoRow: View {
 @MainActor
 class SystemViewModel: ObservableObject {
     @Published var metrics = SystemMetrics()
+    @Published var processes: [AppProcessInfo] = []
     @AppStorage("systemRefreshInterval") var refreshInterval: TimeInterval = 5.0
     
     private let service = SystemService.shared
@@ -302,6 +341,250 @@ class SystemViewModel: ObservableObject {
     
     func refresh() async {
         metrics = await service.collectMetrics()
+        processes = await service.getProcessList()
+    }
+}
+
+// MARK: - 进程监控视图
+
+struct ProcessMonitorView: View {
+    @ObservedObject var viewModel: SystemViewModel
+    @State private var searchText = ""
+    @State private var selectedCategory: AppProcessInfo.ProcessCategory? = nil
+    @State private var sortOption: ProcessSortOption = .cpu
+    @State private var sortAscending = false
+    
+    private var filteredProcesses: [AppProcessInfo] {
+        var processes = viewModel.processes
+        
+        // 分类过滤
+        if let category = selectedCategory {
+            processes = processes.filter { $0.category == category }
+        }
+        
+        // 搜索过滤
+        if !searchText.isEmpty {
+            processes = processes.filter {
+                $0.name.localizedCaseInsensitiveContains(searchText) ||
+                String($0.pid).contains(searchText) ||
+                $0.user.localizedCaseInsensitiveContains(searchText)
+            }
+        }
+        
+        // 排序
+        processes.sort { a, b in
+            let result: Bool
+            switch sortOption {
+            case .cpu:
+                result = a.cpuUsage > b.cpuUsage
+            case .memory:
+                result = a.memoryMB > b.memoryMB
+            case .pid:
+                result = a.pid < b.pid
+            case .name:
+                result = a.name.localizedCaseInsensitiveCompare(b.name) == .orderedAscending
+            }
+            return sortAscending ? !result : result
+        }
+        
+        return processes
+    }
+    
+    var body: some View {
+        VStack(spacing: 12) {
+            // 工具栏
+            HStack(spacing: 12) {
+                // 搜索框
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundColor(.secondary)
+                    TextField("搜索进程名称、PID 或用户", text: $searchText)
+                        .textFieldStyle(.plain)
+                }
+                .padding(8)
+                .background(Color(nsColor: .controlBackgroundColor))
+                .cornerRadius(8)
+                .frame(maxWidth: 300)
+                
+                // 分类筛选
+                Menu {
+                    Button("全部") { selectedCategory = nil }
+                    Divider()
+                    ForEach(AppProcessInfo.ProcessCategory.allCases, id: \.self) { category in
+                        Button {
+                            selectedCategory = category
+                        } label: {
+                            Label(category.rawValue, systemImage: category.icon)
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: selectedCategory?.icon ?? "folder")
+                        Text(selectedCategory?.rawValue ?? "全部")
+                        Image(systemName: "chevron.down")
+                            .font(.caption2)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .cornerRadius(8)
+                }
+                
+                // 排序选项
+                Menu {
+                    ForEach(ProcessSortOption.allCases, id: \.self) { option in
+                        Button {
+                            if sortOption == option {
+                                sortAscending.toggle()
+                            } else {
+                                sortOption = option
+                                sortAscending = false
+                            }
+                        } label: {
+                            HStack {
+                                Text(option.rawValue)
+                                if sortOption == option {
+                                    Image(systemName: sortAscending ? "chevron.up" : "chevron.down")
+                                }
+                            }
+                        }
+                    }
+                } label: {
+                    HStack(spacing: 4) {
+                        Image(systemName: "arrow.up.arrow.down")
+                        Text("排序: \(sortOption.rawValue)")
+                        Image(systemName: "chevron.down")
+                            .font(.caption2)
+                    }
+                    .padding(.horizontal, 12)
+                    .padding(.vertical, 6)
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .cornerRadius(8)
+                }
+                
+                Spacer()
+                
+                // 进程统计
+                Text("\(filteredProcesses.count) / \(viewModel.processes.count) 进程")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+            .padding(.horizontal)
+            .padding(.top, 8)
+            
+            // 表头
+            HStack(spacing: 0) {
+                Text("PID")
+                    .frame(width: 70, alignment: .leading)
+                Text("名称")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                Text("用户")
+                    .frame(width: 100, alignment: .leading)
+                Text("CPU")
+                    .frame(width: 80, alignment: .trailing)
+                Text("内存")
+                    .frame(width: 100, alignment: .trailing)
+                Text("线程")
+                    .frame(width: 60, alignment: .trailing)
+                Text("类别")
+                    .frame(width: 90, alignment: .center)
+            }
+            .font(.caption)
+            .fontWeight(.medium)
+            .foregroundColor(.secondary)
+            .padding(.horizontal, 16)
+            .padding(.vertical, 8)
+            .background(Color(nsColor: .controlBackgroundColor))
+            
+            // 进程列表
+            ScrollView {
+                LazyVStack(spacing: 0) {
+                    ForEach(filteredProcesses.prefix(200)) { process in
+                        ProcessRowView(process: process)
+                        Divider()
+                            .padding(.leading, 16)
+                    }
+                    
+                    if filteredProcesses.isEmpty {
+                        VStack(spacing: 8) {
+                            Image(systemName: "magnifyingglass")
+                                .font(.largeTitle)
+                                .foregroundColor(.secondary)
+                            Text("未找到匹配进程")
+                                .foregroundColor(.secondary)
+                        }
+                        .frame(maxWidth: .infinity)
+                        .padding(.top, 60)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - 进程行视图
+
+struct ProcessRowView: View {
+    let process: AppProcessInfo
+    
+    var body: some View {
+        HStack(spacing: 0) {
+            Text("\(process.pid)")
+                .font(.system(.body, design: .monospaced))
+                .foregroundColor(.secondary)
+                .frame(width: 70, alignment: .leading)
+            
+            Text(process.name)
+                .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
+            
+            Text(process.user)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .lineLimit(1)
+                .frame(width: 100, alignment: .leading)
+            
+            Text(String(format: "%.1f%%", process.cpuUsage))
+                .font(.system(.body, design: .monospaced))
+                .foregroundColor(cpuColor(process.cpuUsage))
+                .frame(width: 80, alignment: .trailing)
+            
+            Text(String(format: "%.1f MB", process.memoryMB))
+                .font(.system(.body, design: .monospaced))
+                .foregroundColor(.primary)
+                .frame(width: 100, alignment: .trailing)
+            
+            Text("\(process.threads)")
+                .font(.system(.body, design: .monospaced))
+                .foregroundColor(.secondary)
+                .frame(width: 60, alignment: .trailing)
+            
+            HStack(spacing: 4) {
+                Image(systemName: process.category.icon)
+                    .font(.caption2)
+                Text(process.category.rawValue)
+                    .font(.caption2)
+            }
+            .foregroundColor(categoryColor(process.category))
+            .frame(width: 90, alignment: .center)
+        }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 8)
+        .contentShape(Rectangle())
+    }
+    
+    private func cpuColor(_ usage: Double) -> Color {
+        if usage < 10 { return .primary }
+        if usage < 50 { return .orange }
+        return .red
+    }
+    
+    private func categoryColor(_ category: AppProcessInfo.ProcessCategory) -> Color {
+        switch category {
+        case .user: return .blue
+        case .system: return .purple
+        case .background: return .green
+        }
     }
 }
 

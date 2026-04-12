@@ -20,6 +20,43 @@ struct SystemMetrics {
     var uptime: TimeInterval = 0
 }
 
+// MARK: - 进程信息模型
+
+struct AppProcessInfo: Identifiable, Hashable {
+    let id: Int32  // PID
+    var pid: Int32 { id }
+    var name: String
+    var user: String
+    var cpuUsage: Double
+    var memoryUsage: Double
+    var memoryMB: Double
+    var threads: Int
+    var category: ProcessCategory
+    
+    enum ProcessCategory: String, CaseIterable {
+        case user = "用户进程"
+        case system = "系统进程"
+        case background = "后台进程"
+        
+        var icon: String {
+            switch self {
+            case .user: return "person.fill"
+            case .system: return "gear"
+            case .background: return "arrow.clockwise"
+            }
+        }
+    }
+}
+
+// MARK: - 进程排序选项
+
+enum ProcessSortOption: String, CaseIterable {
+    case cpu = "CPU"
+    case memory = "内存"
+    case pid = "PID"
+    case name = "名称"
+}
+
 // MARK: - 系统服务
 
 @MainActor
@@ -276,6 +313,99 @@ class SystemService: ObservableObject {
         }
         
         return TempData(temperature: temperature, thermalPressure: thermalPressure)
+    }
+    
+    // MARK: - 进程信息
+    
+    func getProcessList() async -> [AppProcessInfo] {
+        // 并行获取进程信息和线程数（一次 ps 调用获取所有线程数）
+        async let processOutput = executeCommand(executable: "/bin/ps", arguments: ["-eo", "pid,pcpu,pmem,rss,user,comm"])
+        async let threadOutput = executeCommand(executable: "/bin/ps", arguments: ["-eLo", "pid,thcount"])
+        
+        let output = await processOutput
+        let threadOutputStr = await threadOutput
+        
+        // 解析线程数映射（一次性解析）
+        var threadCounts: [Int32: Int] = [:]
+        for line in threadOutputStr.components(separatedBy: "\n").dropFirst() {
+            let parts = line.trimmingCharacters(in: .whitespaces).split(separator: " ", omittingEmptySubsequences: true)
+            if parts.count >= 2,
+               let pid = Int32(parts[0]),
+               let count = Int(parts[1]) {
+                threadCounts[pid] = count
+            }
+        }
+        
+        var processes: [AppProcessInfo] = []
+        let lines = output.components(separatedBy: "\n")
+        
+        // 跳过第一行（表头）
+        for line in lines.dropFirst() {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty { continue }
+            
+            // 解析各字段（固定宽度）
+            guard line.count >= 42 else { continue }
+            
+            // PID: 前6个字符
+            let pidStr = String(line.prefix(6)).trimmingCharacters(in: .whitespaces)
+            guard let pid = Int32(pidStr) else { continue }
+            
+            // %CPU: 7-12
+            let cpuStr = String(line[line.index(line.startIndex, offsetBy: 6)..<line.index(line.startIndex, offsetBy: 12)]).trimmingCharacters(in: .whitespaces)
+            let cpuUsage = Double(cpuStr) ?? 0
+            
+            // %MEM: 13-18
+            let memStr = String(line[line.index(line.startIndex, offsetBy: 12)..<line.index(line.startIndex, offsetBy: 18)]).trimmingCharacters(in: .whitespaces)
+            let memUsage = Double(memStr) ?? 0
+            
+            // RSS: 19-25
+            let rssStr = String(line[line.index(line.startIndex, offsetBy: 18)..<line.index(line.startIndex, offsetBy: 25)]).trimmingCharacters(in: .whitespaces)
+            let rssKB = Double(rssStr) ?? 0
+            let memMB = rssKB / 1024
+            
+            // USER: 26-42
+            let user = String(line[line.index(line.startIndex, offsetBy: 25)..<line.index(line.startIndex, offsetBy: 42)]).trimmingCharacters(in: .whitespaces)
+            if user.isEmpty { continue }
+            
+            // COMM: 43 到末尾
+            let comm = String(line[line.index(line.startIndex, offsetBy: 42)...]).trimmingCharacters(in: .whitespaces)
+            if comm.isEmpty { continue }
+            
+            // 提取进程名称（去除路径）
+            var name = comm
+            if let lastSlash = comm.lastIndex(of: "/") {
+                name = String(comm[comm.index(after: lastSlash)...])
+            }
+            
+            // 判断进程类别
+            let category: AppProcessInfo.ProcessCategory
+            if user == "root" || user == "wheel" {
+                category = .system
+            } else if name.hasPrefix("_") || name.hasPrefix("kernel_") {
+                category = .system
+            } else if name == "login" || name == "launchd" || name == "WindowServer" {
+                category = .system
+            } else {
+                category = .user
+            }
+            
+            // 从映射获取线程数
+            let threads = threadCounts[pid] ?? 1
+            
+            processes.append(AppProcessInfo(
+                id: pid,
+                name: name,
+                user: user,
+                cpuUsage: cpuUsage,
+                memoryUsage: memUsage,
+                memoryMB: memMB,
+                threads: threads,
+                category: category
+            ))
+        }
+        
+        return processes
     }
     
     // MARK: - 工具方法

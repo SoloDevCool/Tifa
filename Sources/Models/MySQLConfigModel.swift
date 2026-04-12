@@ -25,7 +25,7 @@ struct MySQLConfigModel: Equatable {
     var innodbBufferPoolSize = "256M"
     var innodbLogFileSize = "48M"
     var innodbFlushLog = "1"
-    var innodbFilePerTable = "1"
+    var innodbFilePerTable = true
     
     // 日志
     var slowQueryLog = false
@@ -126,7 +126,7 @@ struct MySQLConfigModel: Equatable {
         lines.append("innodb_buffer_pool_size = \(innodbBufferPoolSize)")
         lines.append("innodb_log_file_size = \(innodbLogFileSize)")
         lines.append("innodb_flush_log_at_trx_commit = \(innodbFlushLog)")
-        lines.append("innodb_file_per_table = \(innodbFilePerTable)")
+        lines.append("innodb_file_per_table = \(innodbFilePerTable ? "1" : "0")")
         
         lines.append("")
         lines.append("# 日志")
@@ -167,7 +167,7 @@ struct MySQLConfigModel: Equatable {
         case "innodb_buffer_pool_size": config.innodbBufferPoolSize = value
         case "innodb_log_file_size": config.innodbLogFileSize = value
         case "innodb_flush_log_at_trx_commit": config.innodbFlushLog = value
-        case "innodb_file_per_table": config.innodbFilePerTable = value
+        case "innodb_file_per_table": config.innodbFilePerTable = (value == "1" || value.lowercased() == "on" || value.lowercased() == "true")
         case "slow_query_log": config.slowQueryLog = (value == "1" || value.lowercased() == "on" || value.lowercased() == "true")
         case "long_query_time": config.longQueryTime = value
         case "slow_query_log_file": config.slowQueryLogFile = value
