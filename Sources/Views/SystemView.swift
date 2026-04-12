@@ -2,19 +2,7 @@ import SwiftUI
 
 struct SystemView: View {
     @StateObject private var viewModel = SystemViewModel()
-    @State private var selectedTab: MonitorTab = .metrics
-    
-    enum MonitorTab: String, CaseIterable {
-        case metrics = "系统指标"
-        case processes = "进程监控"
-        
-        var icon: String {
-            switch self {
-            case .metrics: return "gauge"
-            case .processes: return "list.bullet"
-            }
-        }
-    }
+    @Binding var selectedTab: SystemTab
     
     var body: some View {
         VStack(spacing: 0) {
@@ -24,14 +12,6 @@ struct SystemView: View {
                     .font(.title2)
                     .fontWeight(.bold)
                 Spacer()
-                
-                Picker("标签", selection: $selectedTab) {
-                    ForEach(MonitorTab.allCases, id: \.self) { tab in
-                        Label(tab.rawValue, systemImage: tab.icon).tag(tab)
-                    }
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 220)
                 
                 Picker("刷新间隔", selection: $viewModel.refreshInterval) {
                     Text("3秒").tag(3.0)
@@ -505,17 +485,27 @@ struct ProcessMonitorView: View {
                             .padding(.leading, 16)
                     }
                     
-                    if filteredProcesses.isEmpty {
-                        VStack(spacing: 8) {
-                            Image(systemName: "magnifyingglass")
-                                .font(.largeTitle)
-                                .foregroundColor(.secondary)
-                            Text("未找到匹配进程")
-                                .foregroundColor(.secondary)
-                        }
-                        .frame(maxWidth: .infinity)
-                        .padding(.top, 60)
+                if viewModel.processes.isEmpty {
+                    VStack(spacing: 8) {
+                        ProgressView()
+                            .scaleEffect(0.8)
+                        Text("正在加载进程列表...")
+                            .font(.caption)
+                            .foregroundColor(.secondary)
                     }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 60)
+                } else if filteredProcesses.isEmpty {
+                    VStack(spacing: 8) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.largeTitle)
+                            .foregroundColor(.secondary)
+                        Text("未找到匹配进程")
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.top, 60)
+                }
                 }
             }
         }
@@ -589,5 +579,5 @@ struct ProcessRowView: View {
 }
 
 #Preview {
-    SystemView()
+    SystemView(selectedTab: .constant(.metrics))
 }

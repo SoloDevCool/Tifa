@@ -339,38 +339,33 @@ class SystemService: ObservableObject {
         var processes: [AppProcessInfo] = []
         let lines = output.components(separatedBy: "\n")
         
+        // 正则解析: PID  %CPU  %MEM  RSS  USER  COMMAND
+        // 数字字段在前，USER 是单个词，COMMAND 是剩余部分
+        let pattern = #"^\s*(\d+)\s+([\d.]+)\s+([\d.]+)\s+(\d+)\s+(\S+)\s+(.+)$"#
+        guard let regex = try? NSRegularExpression(pattern: pattern) else { return [] }
+        
         // 跳过第一行（表头）
         for line in lines.dropFirst() {
             let trimmed = line.trimmingCharacters(in: .whitespaces)
             if trimmed.isEmpty { continue }
             
-            // 解析各字段（固定宽度）
-            guard line.count >= 42 else { continue }
+            guard let match = regex.firstMatch(in: line, range: NSRange(line.startIndex..., in: line)),
+                  let pidRange = Range(match.range(at: 1), in: line),
+                  let cpuRange = Range(match.range(at: 2), in: line),
+                  let memRange = Range(match.range(at: 3), in: line),
+                  let rssRange = Range(match.range(at: 4), in: line),
+                  let userRange = Range(match.range(at: 5), in: line),
+                  let commRange = Range(match.range(at: 6), in: line) else { continue }
             
-            // PID: 前6个字符
-            let pidStr = String(line.prefix(6)).trimmingCharacters(in: .whitespaces)
-            guard let pid = Int32(pidStr) else { continue }
-            
-            // %CPU: 7-12
-            let cpuStr = String(line[line.index(line.startIndex, offsetBy: 6)..<line.index(line.startIndex, offsetBy: 12)]).trimmingCharacters(in: .whitespaces)
-            let cpuUsage = Double(cpuStr) ?? 0
-            
-            // %MEM: 13-18
-            let memStr = String(line[line.index(line.startIndex, offsetBy: 12)..<line.index(line.startIndex, offsetBy: 18)]).trimmingCharacters(in: .whitespaces)
-            let memUsage = Double(memStr) ?? 0
-            
-            // RSS: 19-25
-            let rssStr = String(line[line.index(line.startIndex, offsetBy: 18)..<line.index(line.startIndex, offsetBy: 25)]).trimmingCharacters(in: .whitespaces)
-            let rssKB = Double(rssStr) ?? 0
+            guard let pid = Int32(line[pidRange]) else { continue }
+            let cpuUsage = Double(line[cpuRange]) ?? 0
+            let memUsage = Double(line[memRange]) ?? 0
+            let rssKB = Double(line[rssRange]) ?? 0
             let memMB = rssKB / 1024
+            let user = String(line[userRange])
+            let comm = String(line[commRange])
             
-            // USER: 26-42
-            let user = String(line[line.index(line.startIndex, offsetBy: 25)..<line.index(line.startIndex, offsetBy: 42)]).trimmingCharacters(in: .whitespaces)
-            if user.isEmpty { continue }
-            
-            // COMM: 43 到末尾
-            let comm = String(line[line.index(line.startIndex, offsetBy: 42)...]).trimmingCharacters(in: .whitespaces)
-            if comm.isEmpty { continue }
+            if user.isEmpty || comm.isEmpty { continue }
             
             // 提取进程名称（去除路径）
             var name = comm

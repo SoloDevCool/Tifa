@@ -209,6 +209,22 @@ enum MongoDbTab: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - 系统监控 子菜单
+
+enum SystemTab: String, CaseIterable, Identifiable {
+    case metrics = "系统指标"
+    case processes = "进程监控"
+    
+    var id: String { rawValue }
+    
+    var icon: String {
+        switch self {
+        case .metrics: return "gauge"
+        case .processes: return "list.bullet"
+        }
+    }
+}
+
 // MARK: - MySQL 子菜单
 
 enum MySQLTab: String, CaseIterable, Identifiable {
@@ -238,6 +254,7 @@ struct ContentView: View {
     @State private var selectedRedisTab: RedisTab = .keys
     @State private var selectedMongoDbTab: MongoDbTab = .databases
     @State private var selectedNVMTab: NVMTab = .versions
+    @State private var selectedSystemTab: SystemTab = .metrics
     
     var body: some View {
         HStack(spacing: 0) {
@@ -382,11 +399,19 @@ struct ContentView: View {
                     }
                 }
                 .listStyle(.sidebar)
+            } else if selectedCategory == .system {
+                List(selection: $selectedSystemTab) {
+                    ForEach(SystemTab.allCases) { tab in
+                        Label(tab.rawValue, systemImage: tab.icon)
+                            .tag(tab)
+                    }
+                }
+                .listStyle(.sidebar)
             } else {
-                // 系统监控、环境变量 - 单页面，无子菜单
+                // 环境变量 - 单页面，无子菜单
                 VStack {
                     Spacer()
-                    Text(selectedCategory == .system ? "系统监控" : "环境变量管理")
+                    Text("环境变量管理")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding()
@@ -471,7 +496,7 @@ struct ContentView: View {
         case .env:
             EnvView()
         case .system:
-            SystemView()
+            SystemView(selectedTab: $selectedSystemTab)
         }
     }
 }
