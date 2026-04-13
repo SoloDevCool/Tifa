@@ -389,6 +389,160 @@ class SystemService: ObservableObject {
         return processes
     }
     
+    // MARK: - 端口信息
+    
+    func getPortList() async -> [PortInfo] {
+        async let tcpOutput = executeCommand(executable: "/usr/sbin/netstat", arguments: ["-an", "-p", "tcp"])
+        async let udpOutput = executeCommand(executable: "/usr/sbin/netstat", arguments: ["-an", "-p", "udp"])
+        async let pidMapping = getPidMappingForPortsAsync()
+        
+        return parseNetstatOutput(
+            tcpOutput: await tcpOutput,
+            udpOutput: await udpOutput,
+            pidMapping: await pidMapping
+        )
+    }
+    
+    private func parseNetstatOutput(tcpOutput: String, udpOutput: String, pidMapping: [String: (pid: Int, name: String)]) -> [PortInfo] {
+        var ports: [PortInfo] = []
+        
+        // 解析 TCP 连接
+        for line in tcpOutput.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty || trimmed.hasPrefix("Proto") || trimmed.hasPrefix("Active") {
+                continue
+            }
+            if let port = parseNetstatLine(line, defaultProto: "TCP", pidMapping: pidMapping) {
+                ports.append(port)
+            }
+        }
+        
+        // 解析 UDP
+        for line in udpOutput.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.isEmpty || trimmed.hasPrefix("Proto") || trimmed.hasPrefix("Active") {
+                continue
+            }
+            if let port = parseNetstatLine(line, defaultProto: "UDP", pidMapping: pidMapping) {
+                ports.append(port)
+            }
+        }
+        
+        return ports.sorted { $0.localPort < $1.localPort }
+    }
+    
+    private func parseNetstatLine(_ line: String, defaultProto: String, pidMapping: [String: (pid: Int, name: String)]) -> PortInfo? {
+        // netstat -an -p tcp 典型格式（6 列）:
+        // tcp4  0  0  *.80  *.*  LISTEN
+        // tcp4  0  0  192.168.2.243.54235  120.53.74.30.443  ESTABLISHED
+        
+        let parts = line.split(separator: " ", omittingEmptySubsequences: true)
+        guard parts.count >= 6 else { return nil }
+        
+        let proto = String(parts[0]).trimmingCharacters(in: .newlines)
+        
+        // UDP 行只有 5 个字段（无 state），TCP 有 6 个
+        let localAddr = String(parts[3]).trimmingCharacters(in: .newlines)
+        let remoteAddr = String(parts[4]).trimmingCharacters(in: .newlines)
+        let state = parts.count >= 6 ? String(parts[5]).trimmingCharacters(in: .whitespacesAndNewlines) : ""
+        
+        let (localAddress, localPort) = parseAddressPort(localAddr)
+        let (remoteAddress, remotePort) = parseAddressPort(remoteAddr)
+        
+        // 通过 lsof 映射获取进程信息
+        let key = "\(localAddress):\(localPort)"
+        let pidInfo = pidMapping[key] ?? (pid: 0, name: "-")
+        
+        // 确定协议类型名称
+        let protocolType: String
+        if proto.hasPrefix("tcp") {
+            protocolType = proto == "tcp6" ? "TCP6" : "TCP"
+        } else {
+            protocolType = proto == "udp6" ? "UDP6" : "UDP"
+        }
+        
+        return PortInfo(
+            id: "\(proto)-\(localAddr)-\(remoteAddr)",
+            localAddress: localAddress,
+            localPort: localPort,
+            remoteAddress: remoteAddress,
+            remotePort: remotePort,
+            protocolType: protocolType,
+            state: state,
+            processName: pidInfo.name,
+            pid: pidInfo.pid
+        )
+    }
+    
+    private func parseAddressPort(_ addr: String) -> (address: String, port: Int) {
+        // 格式: *.80, 127.0.0.1.5432, ::1.5432, *.5353
+        // IPv4: 最后一个点是端口分隔符
+        // IPv6: 最后一个点是端口分隔符, * 表示所有接口
+        
+        if addr == "*.*" {
+            return ("*", 0)
+        }
+        
+        if let lastDot = addr.lastIndex(of: ".") {
+            let portStr = String(addr[addr.index(after: lastDot)...])
+            let address = String(addr[..<lastDot])
+            let addressDisplay = address == "*" ? "*" : address
+            let port = Int(portStr) ?? 0
+            return (addressDisplay, port)
+        }
+        
+        return (addr, 0)
+    }
+    
+    /// 通过 lsof 获取端口与进程的映射（异步版本）
+    private func getPidMappingForPortsAsync() async -> [String: (pid: Int, name: String)] {
+        let result = await executeCommand(executable: "/usr/sbin/lsof", arguments: ["-i", "-P", "-n", "-sTCP:LISTEN"])
+        
+        var mapping: [String: (pid: Int, name: String)] = [:]
+        
+        for line in result.components(separatedBy: "\n") {
+            let parts = line.split(separator: " ", omittingEmptySubsequences: true)
+            guard parts.count >= 9 else { continue }
+            if parts[0] == "COMMAND" { continue }
+            
+            let name = String(parts[0])
+            guard let pid = Int(parts[1]) else { continue }
+            
+            // lsof 格式: ... NAME 列通常是 :端口号 或 *:端口号
+            // 例如: node    1234  user  ...  TCP *:3000 (LISTEN)
+            let nameStr = parts.dropFirst(8).joined(separator: " ")
+            
+            // 提取端口: 从 NAME 列中解析，格式如 "*:3000" 或 "127.0.0.1:5432"
+            var portKey = ""
+            if let colonIdx = nameStr.lastIndex(of: ":") {
+                let portPart = String(nameStr[nameStr.index(after: colonIdx)...])
+                    .trimmingCharacters(in: .whitespacesAndNewlines)
+                    .split(separator: " ").first ?? ""
+                if let port = Int(portPart) {
+                    portKey = "*:\(port)"
+                }
+            }
+            
+            // 也尝试从倒数第二列获取地址
+            if parts.count >= 9 {
+                let addrField = String(parts[8])
+                if let colonIdx = addrField.lastIndex(of: ":") {
+                    let addrPart = String(addrField[..<colonIdx])
+                    let portPart = String(addrField[addrField.index(after: colonIdx)...])
+                    if let port = Int(portPart) {
+                        portKey = "\(addrPart):\(port)"
+                    }
+                }
+            }
+            
+            if !portKey.isEmpty {
+                mapping[portKey] = (pid: pid, name: name)
+            }
+        }
+        
+        return mapping
+    }
+    
     // MARK: - 工具方法
     
     private func parseMemorySize(_ str: String) -> UInt64 {

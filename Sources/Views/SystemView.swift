@@ -42,6 +42,8 @@ struct SystemView: View {
                     metricsContent
                 case .processes:
                     ProcessMonitorView(viewModel: viewModel)
+                case .ports:
+                    PortMonitorView()
                 }
             }
         }

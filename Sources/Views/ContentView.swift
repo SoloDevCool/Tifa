@@ -214,6 +214,7 @@ enum MongoDbTab: String, CaseIterable, Identifiable {
 enum SystemTab: String, CaseIterable, Identifiable {
     case metrics = "系统指标"
     case processes = "进程监控"
+    case ports = "端口监控"
     
     var id: String { rawValue }
     
@@ -221,6 +222,7 @@ enum SystemTab: String, CaseIterable, Identifiable {
         switch self {
         case .metrics: return "gauge"
         case .processes: return "list.bullet"
+        case .ports: return "network"
         }
     }
 }
