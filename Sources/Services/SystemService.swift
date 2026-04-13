@@ -70,16 +70,18 @@ class SystemService: ObservableObject {
         return await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
                 let process = Process()
-                let pipe = Pipe()
+                let stdoutPipe = Pipe()
+                let stderrPipe = Pipe()
                 process.executableURL = URL(fileURLWithPath: executable)
                 process.arguments = arguments
-                process.standardOutput = pipe
-                process.standardError = pipe
+                process.standardOutput = stdoutPipe
+                process.standardError = stderrPipe
                 
                 do {
                     try process.run()
+                    // 先读取 stdout 防止管道死锁
+                    let data = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
                     process.waitUntilExit()
-                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
                     let output = String(data: data, encoding: .utf8) ?? ""
                     continuation.resume(returning: output)
                 } catch {
@@ -318,23 +320,7 @@ class SystemService: ObservableObject {
     // MARK: - 进程信息
     
     func getProcessList() async -> [AppProcessInfo] {
-        // 并行获取进程信息和线程数（一次 ps 调用获取所有线程数）
-        async let processOutput = executeCommand(executable: "/bin/ps", arguments: ["-eo", "pid,pcpu,pmem,rss,user,comm"])
-        async let threadOutput = executeCommand(executable: "/bin/ps", arguments: ["-eLo", "pid,thcount"])
-        
-        let output = await processOutput
-        let threadOutputStr = await threadOutput
-        
-        // 解析线程数映射（一次性解析）
-        var threadCounts: [Int32: Int] = [:]
-        for line in threadOutputStr.components(separatedBy: "\n").dropFirst() {
-            let parts = line.trimmingCharacters(in: .whitespaces).split(separator: " ", omittingEmptySubsequences: true)
-            if parts.count >= 2,
-               let pid = Int32(parts[0]),
-               let count = Int(parts[1]) {
-                threadCounts[pid] = count
-            }
-        }
+        let output = await executeCommand(executable: "/bin/ps", arguments: ["-eo", "pid,pcpu,pmem,rss,user,comm"])
         
         var processes: [AppProcessInfo] = []
         let lines = output.components(separatedBy: "\n")
@@ -385,8 +371,8 @@ class SystemService: ObservableObject {
                 category = .user
             }
             
-            // 从映射获取线程数
-            let threads = threadCounts[pid] ?? 1
+            // 线程数（macOS ps 不支持便捷获取，固定为 1）
+            let threads = 1
             
             processes.append(AppProcessInfo(
                 id: pid,
