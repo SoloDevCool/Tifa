@@ -115,6 +115,7 @@ enum HomebrewTab: String, CaseIterable, Identifiable {
 
 enum RVMTab: String, CaseIterable, Identifiable {
     case rubies = "Ruby 版本"
+    case packages = "Ruby 软件包"
     case gemsets = "Gemset"
     case settings = "设置"
     
@@ -123,6 +124,7 @@ enum RVMTab: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .rubies: return "cube"
+        case .packages: return "shippingbox"
         case .gemsets: return "folder"
         case .settings: return "gear"
         }
@@ -446,6 +448,8 @@ struct ContentView: View {
             switch selectedRVMTab {
             case .rubies:
                 RVMView()
+            case .packages:
+                RubyPackagesView()
             case .gemsets:
                 RVMGemsetView()
             case .settings:

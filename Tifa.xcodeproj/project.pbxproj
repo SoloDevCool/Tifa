@@ -10,6 +10,7 @@
 		08AE768DA9EB4E3087A5FC42 /* MongoDbSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5B06FBEBBB338FADA49E70 /* MongoDbSettingsView.swift */; };
 		14409D5F0A27098E3599F267 /* EnvView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8C1184279B38E238CD7025E /* EnvView.swift */; };
 		1FC7EEC114641F5A93848994 /* BrewPackage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45048FBE56071ECFB7B9128 /* BrewPackage.swift */; };
+		CC1234567890ABCDEF123456 /* RubyPackagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD1234567890ABCDEF123456 /* RubyPackagesView.swift */; };
 		21F4275817F51A514C659F7A /* PyenvSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF1B1EEA647C1C2F1F368674 /* PyenvSettingsView.swift */; };
 		2A4758CAB331B1D3A0724851 /* NvmService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95A4190C87D253563291B14A /* NvmService.swift */; };
 		2DF26D46A411A1727A6797E0 /* NvmSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C290D840BFF9361202558060 /* NvmSettingsView.swift */; };
@@ -88,6 +89,7 @@
 		D65CA5BA61EB86D4D3A127E8 /* RedisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisService.swift; sourceTree = "<group>"; };
 		DC5E7BC9F3C6F3A8A8581857 /* MySQLView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLView.swift; sourceTree = "<group>"; };
 		DD900BB9A17C187D4368A27B /* PyenvView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PyenvView.swift; sourceTree = "<group>"; };
+		DD1234567890ABCDEF123456 /* RubyPackagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RubyPackagesView.swift; sourceTree = "<group>"; };
 		E8BDE346134D1CD2F8AA05EC /* MySQLConfigModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLConfigModel.swift; sourceTree = "<group>"; };
 		E8C1184279B38E238CD7025E /* EnvView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvView.swift; sourceTree = "<group>"; };
 		EDAB995097AEC0FF312249F9 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
@@ -194,6 +196,7 @@
 				91D9971992E33719F46090DD /* RedisSettingsView.swift */,
 				59DDFD689DFC5D12812BA700 /* RedisView.swift */,
 				379D3664A2131B70C4174BD0 /* RVMGemsetView.swift */,
+				DD1234567890ABCDEF123456 /* RubyPackagesView.swift */,
 				7F2EE602DCA60AB48E4F9443 /* RVMSettingsView.swift */,
 				713D968CC7982451B4EE663B /* RVMView.swift */,
 				089AB75A902D58D3175D6D86 /* SearchView.swift */,
@@ -314,6 +317,7 @@
 				7185A35501FE52C1061A736E /* RVMService.swift in Sources */,
 				A37DF9FD186CD331CA063953 /* RVMSettingsView.swift in Sources */,
 				2E00A69F1D416E6D0CBE63DD /* RVMView.swift in Sources */,
+				CC1234567890ABCDEF123456 /* RubyPackagesView.swift in Sources */,
 				379B31C5743235D0A91A1643 /* RedisService.swift in Sources */,
 				32A5259C3D77D57ACF258CBB /* RedisSettingsView.swift in Sources */,
 				F713A4FCC48FB61C24F26A37 /* RedisView.swift in Sources */,

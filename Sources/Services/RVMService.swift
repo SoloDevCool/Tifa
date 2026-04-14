@@ -99,6 +99,138 @@ class RVMService: ObservableObject {
         return await executeCommandWithProgress(arguments: ["install", rubyName])
     }
     
+    /// 安装 Ruby 版本（带实时输出）
+    func installRubyWithOutput(version: String, method: RubyInstallMethod, onOutput: @escaping @MainActor (String) -> Void) async -> OperationResult {
+        let rubyName = "ruby-\(version)"
+        let home = NSHomeDirectory()
+        let binaryFlag = method == .binary ? " --binary" : ""
+        let script = "source \(home)/.rvm/scripts/rvm && rvm install \(rubyName)\(binaryFlag)"
+        
+        return await runInstallScript(script: script, onOutput: onOutput)
+    }
+    
+    /// 自动修复 openssl 依赖后编译安装
+    func installRubyWithOpenSSLFix(version: String, onOutput: @escaping @MainActor (String) -> Void) async -> OperationResult {
+        let home = NSHomeDirectory()
+        
+        // 步骤 1: 安装 openssl@1.1
+        let opensslScript = """
+        brew install rbenv/tap/openssl@1.1 2>&1
+        OPENSSL_DIR=$(brew --prefix rbenv/tap/openssl@1.1 2>/dev/null || echo "")
+        echo "OPENSSL_PREFIX=$OPENSSL_DIR"
+        """
+        let opensslResult = await runInstallScript(script: opensslScript, onOutput: onOutput)
+        
+        // 提取 openssl 安装路径
+        var opensslDir = ""
+        if case .success(let output) = opensslResult {
+            if let range = output.range(of: "OPENSSL_PREFIX=") {
+                let after = output[range.upperBound...]
+                opensslDir = after.prefix(while: { !$0.isNewline }).trimmingCharacters(in: .whitespaces)
+            }
+        }
+        
+        // 步骤 2: 用 openssl 路径编译安装
+        Task { @MainActor in
+            onOutput("\n--- 开始使用 openssl@1.1 编译安装 ---\n")
+        }
+        
+        let installScript: String
+        if !opensslDir.isEmpty {
+            installScript = """
+            source \(home)/.rvm/scripts/rvm
+            export PKG_CONFIG_PATH="\(opensslDir)/lib/pkgconfig:$PKG_CONFIG_PATH"
+            export RUBY_CONFIGURE_OPTS="--with-openssl-dir=\(opensslDir)"
+            rvm install ruby-\(version) --with-openssl-dir=\(opensslDir)
+            """
+        } else {
+            // 回退：尝试 rvm 自带的 openssl
+            installScript = """
+            source \(home)/.rvm/scripts/rvm
+            rvm pkg install openssl
+            rvm install ruby-\(version) --with-openssl-dir=$rvm_path/usr
+            """
+        }
+        
+        return await runInstallScript(script: installScript, onOutput: onOutput)
+    }
+    
+    /// 执行安装脚本（通用）
+    private func runInstallScript(script: String, onOutput: @escaping @MainActor (String) -> Void) async -> OperationResult {
+        let shell = "/bin/bash"
+        
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                guard let self = self else {
+                    Task { @MainActor in
+                        continuation.resume(returning: .failure("Service not available"))
+                    }
+                    return
+                }
+                
+                let process = Process()
+                let stdoutPipe = Pipe()
+                let stderrPipe = Pipe()
+                
+                process.executableURL = URL(fileURLWithPath: shell)
+                process.arguments = ["-l", "-c", script]
+                process.environment = self.rvmEnvironment
+                process.standardOutput = stdoutPipe
+                process.standardError = stderrPipe
+                
+                // 实时读取 stdout
+                stdoutPipe.fileHandleForReading.readabilityHandler = { handle in
+                    let data = handle.availableData
+                    if !data.isEmpty, let line = String(data: data, encoding: .utf8) {
+                        let trimmed = line.trimmingCharacters(in: .newlines)
+                        if !trimmed.isEmpty {
+                            Task { @MainActor in
+                                onOutput(trimmed)
+                            }
+                        }
+                    }
+                }
+                
+                // 实时读取 stderr
+                stderrPipe.fileHandleForReading.readabilityHandler = { handle in
+                    let data = handle.availableData
+                    if !data.isEmpty, let line = String(data: data, encoding: .utf8) {
+                        let trimmed = line.trimmingCharacters(in: .newlines)
+                        if !trimmed.isEmpty {
+                            Task { @MainActor in
+                                onOutput(trimmed)
+                            }
+                        }
+                    }
+                }
+                
+                do {
+                    try process.run()
+                    process.waitUntilExit()
+                    
+                    // 清理 handler
+                    stdoutPipe.fileHandleForReading.readabilityHandler = nil
+                    stderrPipe.fileHandleForReading.readabilityHandler = nil
+                    
+                    let exitCode = process.terminationStatus
+                    DispatchQueue.main.async {
+                        if exitCode == 0 {
+                            continuation.resume(returning: .success("安装成功"))
+                        } else {
+                            continuation.resume(returning: .failure("安装失败，退出码: \(exitCode)"))
+                        }
+                    }
+                } catch {
+                    stdoutPipe.fileHandleForReading.readabilityHandler = nil
+                    stderrPipe.fileHandleForReading.readabilityHandler = nil
+                    DispatchQueue.main.async {
+                        continuation.resume(returning: .failure(error.localizedDescription))
+                    }
+                }
+            }
+        }
+    }
+    
     /// 卸载 Ruby 版本
     func uninstallRuby(version: String) async -> OperationResult {
         let rubyName = "ruby-\(version)"
