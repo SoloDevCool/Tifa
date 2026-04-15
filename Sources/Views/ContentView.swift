@@ -114,7 +114,6 @@ enum HomebrewTab: String, CaseIterable, Identifiable {
 // MARK: - RVM 子菜单
 
 enum RVMTab: String, CaseIterable, Identifiable {
-    case rubies = "Ruby 版本"
     case packages = "Ruby 软件包"
     case gemsets = "Gemset"
     case settings = "设置"
@@ -123,7 +122,6 @@ enum RVMTab: String, CaseIterable, Identifiable {
     
     var icon: String {
         switch self {
-        case .rubies: return "cube"
         case .packages: return "shippingbox"
         case .gemsets: return "folder"
         case .settings: return "gear"
@@ -134,14 +132,14 @@ enum RVMTab: String, CaseIterable, Identifiable {
 // MARK: - pyenv 子菜单
 
 enum PyenvTab: String, CaseIterable, Identifiable {
-    case versions = "Python 版本"
+    case packages = "Python 软件包"
     case settings = "设置"
-    
+
     var id: String { rawValue }
-    
+
     var icon: String {
         switch self {
-        case .versions: return "leaf"
+        case .packages: return "shippingbox"
         case .settings: return "gear"
         }
     }
@@ -182,14 +180,14 @@ enum RedisTab: String, CaseIterable, Identifiable {
 // MARK: - NVM 子菜单
 
 enum NVMTab: String, CaseIterable, Identifiable {
-    case versions = "Node 版本"
+    case packages = "NVM 软件包"
     case settings = "设置"
-    
+
     var id: String { rawValue }
-    
+
     var icon: String {
         switch self {
-        case .versions: return "chevron.left.forwardslash.chevron.right"
+        case .packages: return "shippingbox"
         case .settings: return "gear"
         }
     }
@@ -251,13 +249,13 @@ struct ContentView: View {
     @StateObject private var homebrewService = HomebrewService.shared
     @State private var selectedCategory: ToolCategory = .homebrew
     @State private var selectedHomebrewTab: HomebrewTab = .installed
-    @State private var selectedRVMTab: RVMTab = .rubies
+    @State private var selectedRVMTab: RVMTab = .packages
     @State private var selectedMySQLTab: MySQLTab = .databases
-    @State private var selectedPyenvTab: PyenvTab = .versions
+    @State private var selectedPyenvTab: PyenvTab = .packages
     @State private var selectedPostgresTab: PostgresTab = .databases
     @State private var selectedRedisTab: RedisTab = .keys
     @State private var selectedMongoDbTab: MongoDbTab = .databases
-    @State private var selectedNVMTab: NVMTab = .versions
+    @State private var selectedNVMTab: NVMTab = .packages
     @State private var selectedSystemTab: SystemTab = .metrics
     
     var body: some View {
@@ -446,8 +444,6 @@ struct ContentView: View {
             }
         case .rvm:
             switch selectedRVMTab {
-            case .rubies:
-                RVMView()
             case .packages:
                 RubyPackagesView()
             case .gemsets:
@@ -466,8 +462,8 @@ struct ContentView: View {
             }
         case .pyenv:
             switch selectedPyenvTab {
-            case .versions:
-                PyenvView()
+            case .packages:
+                PythonPackagesView()
             case .settings:
                 PyenvSettingsView()
             }
@@ -494,8 +490,8 @@ struct ContentView: View {
             }
         case .nvm:
             switch selectedNVMTab {
-            case .versions:
-                NvmView()
+            case .packages:
+                NvmPackagesView()
             case .settings:
                 NvmSettingsView()
             }

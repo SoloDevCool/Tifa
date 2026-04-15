@@ -8,6 +8,15 @@ class PyenvService: ObservableObject {
     
     @Published var isLoading = false
     @Published var loadingMessage = ""
+
+    /// 当前正在执行的安装进程（用于取消）
+    private var currentInstallProcess: Process?
+
+    /// 取消当前安装进程
+    func cancelCurrentInstall() {
+        currentInstallProcess?.terminate()
+        currentInstallProcess = nil
+    }
     
     /// brew 绝对路径（GUI 应用 PATH 中缺少 /opt/homebrew/bin）
     private var brewPath: String {
@@ -628,6 +637,10 @@ class PyenvService: ObservableObject {
                 process.standardOutput = stdoutPipe
                 process.standardError = stderrPipe
 
+                Task { @MainActor in
+                    self.currentInstallProcess = process
+                }
+
                 // 实时读取 stdout
                 let stdoutHandle = stdoutPipe.fileHandleForReading
                 stdoutPipe.fileHandleForReading.readabilityHandler = { handle in
@@ -659,6 +672,10 @@ class PyenvService: ObservableObject {
                     try process.run()
                     process.waitUntilExit()
                     timer.cancel()
+
+                    Task { @MainActor in
+                        self.currentInstallProcess = nil
+                    }
 
                     // 清理 readabilityHandler
                     stdoutPipe.fileHandleForReading.readabilityHandler = nil

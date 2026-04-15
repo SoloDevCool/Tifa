@@ -8,7 +8,16 @@ class RVMService: ObservableObject {
     
     @Published var isLoading = false
     @Published var loadingMessage = ""
+
+    /// 当前正在执行的安装进程（用于取消）
+    private var currentInstallProcess: Process?
     
+    /// 取消当前安装进程
+    func cancelCurrentInstall() {
+        currentInstallProcess?.terminate()
+        currentInstallProcess = nil
+    }
+
     /// RVM 路径
     private var rvmPath: String {
         let home = NSHomeDirectory()
@@ -172,11 +181,16 @@ class RVMService: ObservableObject {
                 let stdoutPipe = Pipe()
                 let stderrPipe = Pipe()
                 
+                let env = self.rvmEnvironment
                 process.executableURL = URL(fileURLWithPath: shell)
                 process.arguments = ["-l", "-c", script]
-                process.environment = self.rvmEnvironment
+                process.environment = env
                 process.standardOutput = stdoutPipe
                 process.standardError = stderrPipe
+                
+                Task { @MainActor in
+                    self.currentInstallProcess = process
+                }
                 
                 // 实时读取 stdout
                 stdoutPipe.fileHandleForReading.readabilityHandler = { handle in
@@ -207,6 +221,10 @@ class RVMService: ObservableObject {
                 do {
                     try process.run()
                     process.waitUntilExit()
+                    
+                    Task { @MainActor in
+                        self.currentInstallProcess = nil
+                    }
                     
                     // 清理 handler
                     stdoutPipe.fileHandleForReading.readabilityHandler = nil

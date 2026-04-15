@@ -285,6 +285,9 @@ struct RubyPackagesView: View {
                     showingInstallProgress = false
                     Task { await viewModel.refresh() }
                 },
+                onCancel: {
+                    viewModel.cancelInstall()
+                },
                 onRetryCompile: {
                     Task { await viewModel.install(installVersion, method: .compile) }
                 },
@@ -322,6 +325,15 @@ class RubyPackagesViewModel: ObservableObject {
     @Published var canRetryWithCompile = false
     @Published var canAutoFix = false
     private var installingVersion = ""
+    
+    /// 取消当前安装
+    func cancelInstall() {
+        service.cancelCurrentInstall()
+        installOutput += "\n\n⚠️ 安装已取消"
+        isInstalling = false
+        installError = "用户取消了安装"
+        isOperating = false
+    }
     
     private let service = RVMService.shared
     
@@ -596,6 +608,7 @@ struct InstallProgressSheet: View {
     let canRetryWithCompile: Bool
     let canAutoFix: Bool
     let onDismiss: () -> Void
+    let onCancel: (() -> Void)?
     let onRetryCompile: (() -> Void)?
     let onAutoFix: (() -> Void)?
     
@@ -644,6 +657,11 @@ struct InstallProgressSheet: View {
                         .buttonStyle(.borderedProminent)
                         .keyboardShortcut(.defaultAction)
                     }
+                } else {
+                    Button("取消") {
+                        onCancel?()
+                    }
+                    .buttonStyle(.bordered)
                 }
             }
             .padding(.horizontal, 20)

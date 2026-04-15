@@ -18,6 +18,15 @@ class NvmService: ObservableObject {
     @Published var isLoading = false
     @Published var loadingMessage = ""
     @Published var lastError: String?
+
+    /// 当前正在执行的安装进程（用于取消）
+    private var currentInstallProcess: Process?
+
+    /// 取消当前安装进程
+    func cancelCurrentInstall() {
+        currentInstallProcess?.terminate()
+        currentInstallProcess = nil
+    }
     
     /// brew 可执行文件绝对路径
     private var brewPath: String {
@@ -228,10 +237,14 @@ class NvmService: ObservableObject {
                 process.environment = env
                 process.standardOutput = stdoutPipe
                 process.standardError = stderrPipe
-                
+
+                Task { @MainActor in
+                    self.currentInstallProcess = process
+                }
+
                 let stdoutHandle = stdoutPipe.fileHandleForReading
                 let stderrHandle = stderrPipe.fileHandleForReading
-                
+
                 stdoutHandle.readabilityHandler = { handle in
                     let data = handle.availableData
                     guard let output = String(data: data, encoding: .utf8), !output.isEmpty else { return }
@@ -242,7 +255,7 @@ class NvmService: ObservableObject {
                     guard let output = String(data: data, encoding: .utf8), !output.isEmpty else { return }
                     Task { @MainActor in onOutput(output) }
                 }
-                
+
                 do {
                     try process.run()
                     let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global())
@@ -250,10 +263,14 @@ class NvmService: ObservableObject {
                     timer.schedule(deadline: .now() + 1200)
                     timer.setEventHandler { timedOut = true; process.terminate() }
                     timer.resume()
-                    
+
                     process.waitUntilExit()
                     timer.cancel()
-                    
+
+                    Task { @MainActor in
+                        self.currentInstallProcess = nil
+                    }
+
                     stdoutHandle.readabilityHandler = nil
                     stderrHandle.readabilityHandler = nil
                     
