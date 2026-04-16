@@ -42,6 +42,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
     case redis = "Redis"
     case mongodb = "MongoDB"
     case nvm = "NVM"
+    case rustup = "rustup"
     case system = "系统监控"
     case env = "环境变量"
     
@@ -57,6 +58,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
         case .redis: return "arrow.left.arrow.right"
         case .mongodb: return "leaf.fill"
         case .nvm: return "chevron.left.forwardslash.chevron.right"
+        case .rustup: return "wrench.and.screwdriver.fill"
         case .system: return "chart.bar"
         case .env: return "gearshape.2"
         }
@@ -65,7 +67,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
     var group: CategoryGroup {
         switch self {
         case .system, .homebrew, .env: return .basic
-        case .rvm, .pyenv, .nvm: return .language
+        case .rvm, .pyenv, .nvm, .rustup: return .language
         case .mysql, .postgres, .redis, .mongodb: return .database
         }
     }
@@ -193,6 +195,22 @@ enum NVMTab: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - rustup 子菜单
+
+enum RustupTab: String, CaseIterable, Identifiable {
+    case packages = "Rust 工具链"
+    case settings = "设置"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .packages: return "wrench.and.screwdriver.fill"
+        case .settings: return "gear"
+        }
+    }
+}
+
 // MARK: - MongoDB 子菜单
 
 enum MongoDbTab: String, CaseIterable, Identifiable {
@@ -256,6 +274,7 @@ struct ContentView: View {
     @State private var selectedRedisTab: RedisTab = .keys
     @State private var selectedMongoDbTab: MongoDbTab = .databases
     @State private var selectedNVMTab: NVMTab = .packages
+    @State private var selectedRustupTab: RustupTab = .packages
     @State private var selectedSystemTab: SystemTab = .metrics
     
     var body: some View {
@@ -276,8 +295,8 @@ struct ContentView: View {
         }
         .frame(minWidth: 1000, minHeight: 600)
         .overlay {
-            if homebrewService.isLoading || RVMService.shared.isLoading || MySQLService.shared.isLoading || PyenvService.shared.isLoading || PostgresService.shared.isLoading || RedisService.shared.isLoading || NvmService.shared.isLoading || MongoDbService.shared.isLoading {
-                LoadingOverlay(message: homebrewService.isLoading ? homebrewService.loadingMessage : (RVMService.shared.isLoading ? RVMService.shared.loadingMessage : (MySQLService.shared.isLoading ? MySQLService.shared.loadingMessage : (PyenvService.shared.isLoading ? PyenvService.shared.loadingMessage : (PostgresService.shared.isLoading ? PostgresService.shared.loadingMessage : (RedisService.shared.isLoading ? RedisService.shared.loadingMessage : (NvmService.shared.isLoading ? NvmService.shared.loadingMessage : MongoDbService.shared.loadingMessage)))))))
+            if homebrewService.isLoading || RVMService.shared.isLoading || MySQLService.shared.isLoading || PyenvService.shared.isLoading || PostgresService.shared.isLoading || RedisService.shared.isLoading || NvmService.shared.isLoading || MongoDbService.shared.isLoading || RustupService.shared.isLoading {
+                LoadingOverlay(message: homebrewService.isLoading ? homebrewService.loadingMessage : (RVMService.shared.isLoading ? RVMService.shared.loadingMessage : (MySQLService.shared.isLoading ? MySQLService.shared.loadingMessage : (PyenvService.shared.isLoading ? PyenvService.shared.loadingMessage : (PostgresService.shared.isLoading ? PostgresService.shared.loadingMessage : (RedisService.shared.isLoading ? RedisService.shared.loadingMessage : (NvmService.shared.isLoading ? NvmService.shared.loadingMessage : (MongoDbService.shared.isLoading ? MongoDbService.shared.loadingMessage : RustupService.shared.loadingMessage))))))))
             }
         }
         .alert("错误", isPresented: .constant(homebrewService.lastError != nil)) {
@@ -401,6 +420,14 @@ struct ContentView: View {
                     }
                 }
                 .listStyle(.sidebar)
+            } else if selectedCategory == .rustup {
+                List(selection: $selectedRustupTab) {
+                    ForEach(RustupTab.allCases) { tab in
+                        Label(tab.rawValue, systemImage: tab.icon)
+                            .tag(tab)
+                    }
+                }
+                .listStyle(.sidebar)
             } else if selectedCategory == .system {
                 List(selection: $selectedSystemTab) {
                     ForEach(SystemTab.allCases) { tab in
@@ -494,6 +521,13 @@ struct ContentView: View {
                 NvmPackagesView()
             case .settings:
                 NvmSettingsView()
+            }
+        case .rustup:
+            switch selectedRustupTab {
+            case .packages:
+                RustupPackagesView()
+            case .settings:
+                RustupSettingsView()
             }
         case .env:
             EnvView()
