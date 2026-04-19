@@ -292,10 +292,12 @@ struct ContentView: View {
             
             Divider()
             
-            // 第二列：子菜单
-            subSidebar
-            
-            Divider()
+            // 第二列：子菜单（环境变量和工具设置不需要）
+            if selectedCategory != .env && selectedCategory != .toolSettings {
+                subSidebar
+                
+                Divider()
+            }
             
             // 第三列：内容页
             detailView
