@@ -340,6 +340,8 @@ struct ProcessMonitorView: View {
     @State private var selectedCategory: AppProcessInfo.ProcessCategory? = nil
     @State private var sortOption: ProcessSortOption = .cpu
     @State private var sortAscending = false
+    @State private var alertMessage: String?
+    @State private var isKilling = false
     
     private var filteredProcesses: [AppProcessInfo] {
         var processes = viewModel.processes
@@ -487,7 +489,9 @@ struct ProcessMonitorView: View {
             ScrollView {
                 LazyVStack(spacing: 0) {
                     ForEach(filteredProcesses.prefix(200)) { process in
-                        ProcessRowView(process: process)
+                        ProcessRowView(process: process) { pid, force in
+                            killProcess(pid: pid, force: force)
+                        }
                         Divider()
                             .padding(.leading, 16)
                     }
@@ -516,6 +520,25 @@ struct ProcessMonitorView: View {
                 }
             }
         }
+        .alert("操作结果", isPresented: .constant(alertMessage != nil)) {
+            Button("确定") { alertMessage = nil }
+        } message: {
+            Text(alertMessage ?? "")
+        }
+    }
+    
+    private func killProcess(pid: Int32, force: Bool) {
+        isKilling = true
+        let service = SystemService.shared
+        Task {
+            let result = await service.killProcess(pid: pid, force: force)
+            isKilling = false
+            if result.success {
+                await viewModel.refresh()
+            } else {
+                alertMessage = result.message
+            }
+        }
     }
 }
 
@@ -523,6 +546,7 @@ struct ProcessMonitorView: View {
 
 struct ProcessRowView: View {
     let process: AppProcessInfo
+    var onKill: ((Int32, Bool) -> Void)?
     
     var body: some View {
         HStack(spacing: 0) {
@@ -568,6 +592,14 @@ struct ProcessRowView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 8)
         .contentShape(Rectangle())
+        .contextMenu {
+            Button("结束进程") {
+                onKill?(process.pid, false)
+            }
+            Button("强制结束进程") {
+                onKill?(process.pid, true)
+            }
+        }
     }
     
     private func cpuColor(_ usage: Double) -> Color {

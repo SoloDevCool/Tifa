@@ -389,6 +389,21 @@ class SystemService: ObservableObject {
         return processes
     }
     
+    // MARK: - 终止进程
+    
+    func killProcess(pid: Int32, force: Bool) async -> (success: Bool, message: String) {
+        let signal: Int32 = force ? SIGKILL : SIGTERM
+        let action = force ? "强制终止" : "终止"
+        let result = Darwin.kill(pid, signal)
+        
+        if result == 0 {
+            return (true, "")
+        } else {
+            let errno = Darwin.errno
+            return (false, "\(action)进程 \(pid) 失败 (错误码: \(errno))")
+        }
+    }
+    
     // MARK: - 端口信息
     
     func getPortList() async -> [PortInfo] {
