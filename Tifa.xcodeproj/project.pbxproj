@@ -12,6 +12,7 @@
 		19AB3C18A64199CF801FA500 /* ToolSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F81707194882183E3EB16DC /* ToolSettingsView.swift */; };
 		1FC7EEC114641F5A93848994 /* BrewPackage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45048FBE56071ECFB7B9128 /* BrewPackage.swift */; };
 		21F4275817F51A514C659F7A /* PyenvSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF1B1EEA647C1C2F1F368674 /* PyenvSettingsView.swift */; };
+		22288B99E516EC44951FDA97 /* PyenvSourceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A2A064C91BB125EC0D083D0 /* PyenvSourceView.swift */; };
 		2A4758CAB331B1D3A0724851 /* NvmService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95A4190C87D253563291B14A /* NvmService.swift */; };
 		2BBBF76FE690A61D55AB0FD3 /* RVMSourceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD5376DD98BBF7C7DA23325B /* RVMSourceView.swift */; };
 		2DF26D46A411A1727A6797E0 /* NvmSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C290D840BFF9361202558060 /* NvmSettingsView.swift */; };
@@ -83,6 +84,7 @@
 		8271F4334066D4AB95BAE1AC /* PostgresSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostgresSettingsView.swift; sourceTree = "<group>"; };
 		8397BC603A3D530A63469144 /* MySQLVersionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLVersionsView.swift; sourceTree = "<group>"; };
 		89B7BCF74AECF8BFE5943FD5 /* PostgresService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostgresService.swift; sourceTree = "<group>"; };
+		8A2A064C91BB125EC0D083D0 /* PyenvSourceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PyenvSourceView.swift; sourceTree = "<group>"; };
 		91860FD6871E07EFEF9ED164 /* SystemService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemService.swift; sourceTree = "<group>"; };
 		91D9971992E33719F46090DD /* RedisSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisSettingsView.swift; sourceTree = "<group>"; };
 		956C34BFB6D1DC5F52C88090 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
@@ -204,6 +206,7 @@
 				8271F4334066D4AB95BAE1AC /* PostgresSettingsView.swift */,
 				027F1B0D3C7EA5C8F15867D8 /* PostgresView.swift */,
 				EF1B1EEA647C1C2F1F368674 /* PyenvSettingsView.swift */,
+				8A2A064C91BB125EC0D083D0 /* PyenvSourceView.swift */,
 				68C0BE77F649E26860290011 /* PythonPackagesView.swift */,
 				91D9971992E33719F46090DD /* RedisSettingsView.swift */,
 				59DDFD689DFC5D12812BA700 /* RedisView.swift */,
@@ -329,6 +332,7 @@
 				D6E69D4811459C5C3B4DB23D /* PostgresView.swift in Sources */,
 				3783A5F7C0CAA14ECBF331B1 /* PyenvService.swift in Sources */,
 				21F4275817F51A514C659F7A /* PyenvSettingsView.swift in Sources */,
+				22288B99E516EC44951FDA97 /* PyenvSourceView.swift in Sources */,
 				C6949DA0D57E58F6AA9266EB /* PythonPackagesView.swift in Sources */,
 				EEAE836FA54B7C1DF895FACC /* RVMGemsetView.swift in Sources */,
 				7185A35501FE52C1061A736E /* RVMService.swift in Sources */,

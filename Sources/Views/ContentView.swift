@@ -145,6 +145,7 @@ enum RVMTab: String, CaseIterable, Identifiable {
 
 enum PyenvTab: String, CaseIterable, Identifiable {
     case packages = "Python 软件包"
+    case source = "安装源"
     case settings = "设置"
 
     var id: String { rawValue }
@@ -152,6 +153,7 @@ enum PyenvTab: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .packages: return "shippingbox"
+        case .source: return "globe"
         case .settings: return "gear"
         }
     }
@@ -516,6 +518,8 @@ struct ContentView: View {
             switch selectedPyenvTab {
             case .packages:
                 PythonPackagesView()
+            case .source:
+                PyenvSourceView()
             case .settings:
                 PyenvSettingsView()
             }
