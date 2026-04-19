@@ -19,6 +19,7 @@ enum CategoryGroup: String, CaseIterable, Identifiable {
     case basic = "基础服务"
     case language = "语言管理器"
     case database = "数据库"
+    case settings = "设置"
     
     var id: String { rawValue }
     
@@ -27,6 +28,7 @@ enum CategoryGroup: String, CaseIterable, Identifiable {
         case .basic: return "wrench.and.screwdriver"
         case .language: return "chevron.left.forwardslash.chevron.right"
         case .database: return "cylinder"
+        case .settings: return "gearshape"
         }
     }
 }
@@ -45,6 +47,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
     case rustup = "rustup"
     case system = "系统监控"
     case env = "环境变量"
+    case toolSettings = "工具设置"
     
     var id: String { rawValue }
     
@@ -61,6 +64,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
         case .rustup: return "wrench.and.screwdriver.fill"
         case .system: return "chart.bar"
         case .env: return "gearshape.2"
+        case .toolSettings: return "gearshape"
         }
     }
     
@@ -69,6 +73,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
         case .system, .homebrew, .env: return .basic
         case .rvm, .pyenv, .nvm, .rustup: return .language
         case .mysql, .postgres, .redis, .mongodb: return .database
+        case .toolSettings: return .settings
         }
     }
     
@@ -83,6 +88,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
                 case .basic: return [.system, .homebrew, .env]
                 case .language: return items
                 case .database: return items
+                case .settings: return items
                 }
             }()
             result.append((group: group, items: ordered))
@@ -438,8 +444,17 @@ struct ContentView: View {
                     }
                 }
                 .listStyle(.sidebar)
+            } else if selectedCategory == .toolSettings {
+                // 工具设置 - 单页面，无子菜单
+                VStack {
+                    Spacer()
+                    Text("工具设置")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding()
+                    Spacer()
+                }
             } else {
-                // 环境变量 - 单页面，无子菜单
                 VStack {
                     Spacer()
                     Text("环境变量管理")
@@ -535,6 +550,8 @@ struct ContentView: View {
             }
         case .env:
             EnvView()
+        case .toolSettings:
+            ToolSettingsView()
         case .system:
             SystemView(selectedTab: $selectedSystemTab)
         }

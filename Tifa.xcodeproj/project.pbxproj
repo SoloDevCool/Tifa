@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		08AE768DA9EB4E3087A5FC42 /* MongoDbSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E5B06FBEBBB338FADA49E70 /* MongoDbSettingsView.swift */; };
 		14409D5F0A27098E3599F267 /* EnvView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8C1184279B38E238CD7025E /* EnvView.swift */; };
+		19AB3C18A64199CF801FA500 /* ToolSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F81707194882183E3EB16DC /* ToolSettingsView.swift */; };
 		1FC7EEC114641F5A93848994 /* BrewPackage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45048FBE56071ECFB7B9128 /* BrewPackage.swift */; };
 		21F4275817F51A514C659F7A /* PyenvSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF1B1EEA647C1C2F1F368674 /* PyenvSettingsView.swift */; };
 		2A4758CAB331B1D3A0724851 /* NvmService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95A4190C87D253563291B14A /* NvmService.swift */; };
@@ -77,6 +78,7 @@
 		7BDA1E999A65D88FBAA0C772 /* TifaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TifaApp.swift; sourceTree = "<group>"; };
 		7E5B06FBEBBB338FADA49E70 /* MongoDbSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoDbSettingsView.swift; sourceTree = "<group>"; };
 		7F2EE602DCA60AB48E4F9443 /* RVMSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RVMSettingsView.swift; sourceTree = "<group>"; };
+		7F81707194882183E3EB16DC /* ToolSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolSettingsView.swift; sourceTree = "<group>"; };
 		8271F4334066D4AB95BAE1AC /* PostgresSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostgresSettingsView.swift; sourceTree = "<group>"; };
 		8397BC603A3D530A63469144 /* MySQLVersionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLVersionsView.swift; sourceTree = "<group>"; };
 		89B7BCF74AECF8BFE5943FD5 /* PostgresService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostgresService.swift; sourceTree = "<group>"; };
@@ -212,6 +214,7 @@
 				FF00EC3F6703C0062270D358 /* SettingsView.swift */,
 				FE35909EF679ACEBC04FEA83 /* SystemView.swift */,
 				5FBA739E202DE731122F387C /* TapView.swift */,
+				7F81707194882183E3EB16DC /* ToolSettingsView.swift */,
 				94C29DB96BBF90BCB8FB8FA2 /* Components */,
 			);
 			path = Views;
@@ -341,6 +344,7 @@
 				32BF4904643BF8F0E05D9943 /* SystemView.swift in Sources */,
 				B7A2DE17537002AF812D24E7 /* TapView.swift in Sources */,
 				E0E77CA6413DC48DA89DDF0E /* TifaApp.swift in Sources */,
+				19AB3C18A64199CF801FA500 /* ToolSettingsView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

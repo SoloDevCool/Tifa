@@ -13,18 +13,6 @@ struct SystemView: View {
                     .fontWeight(.bold)
                 Spacer()
                 
-                Picker("刷新间隔", selection: $viewModel.refreshInterval) {
-                    Text("3秒").tag(3.0)
-                    Text("5秒").tag(5.0)
-                    Text("10秒").tag(10.0)
-                    Text("30秒").tag(30.0)
-                }
-                .pickerStyle(.segmented)
-                .frame(width: 200)
-                .onChange(of: viewModel.refreshInterval) { _ in
-                    viewModel.restartTimer()
-                }
-                
                 Button(action: { Task { await viewModel.refresh() } }) {
                     Label("刷新", systemImage: "arrow.clockwise")
                 }
