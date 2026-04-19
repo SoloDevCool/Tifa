@@ -1,32 +1,10 @@
 import SwiftUI
 
-// MARK: - Ruby 安装源预设（RVM 下载 Ruby 源码包的镜像）
-
-struct RubyInstallSourcePreset: Identifiable, Hashable {
-    let id: String
-    let name: String
-    let url: String
-    
-    static let official = RubyInstallSourcePreset(id: "official", name: "官方源", url: "https://cache.ruby-lang.org/pub/ruby")
-    static let taobao = RubyInstallSourcePreset(id: "taobao", name: "淘宝镜像", url: "https://npm.taobao.org/mirrors/ruby")
-    static let ustc = RubyInstallSourcePreset(id: "ustc", name: "中科大", url: "https://mirrors.ustc.edu.cn/ruby/")
-    static let tsinghua = RubyInstallSourcePreset(id: "tsinghua", name: "清华大学", url: "https://mirrors.tuna.tsinghua.edu.cn/ruby/")
-    
-    static let allPresets: [RubyInstallSourcePreset] = [.official, .taobao, .ustc, .tsinghua]
-}
-
 // MARK: - RVM 设置视图
 
 struct RVMSettingsView: View {
     @StateObject private var viewModel = RVMSettingsViewModel()
-    @State private var selectedSource: RubyInstallSourcePreset = .official
-    @State private var isCustomSource = false
-    @State private var customSourceUrl = ""
-    @State private var showingSwitchResult = false
-    @State private var switchResultMessage = ""
     @State private var showingUninstallAlert = false
-    @State private var currentSourceName = "加载中..."
-    @State private var isApplying = false
     
     var body: some View {
         ScrollView {
@@ -34,7 +12,6 @@ struct RVMSettingsView: View {
                 statusSection
                 if viewModel.isRVMAvailable {
                     installInfoSection
-                    rubySourceSection
                     maintenanceSection
                 }
                 aboutSection
@@ -45,7 +22,6 @@ struct RVMSettingsView: View {
         .background(Color(nsColor: .textBackgroundColor))
         .task {
             await viewModel.load()
-            await detectCurrentSource()
         }
         .alert("卸载确认", isPresented: $showingUninstallAlert) {
             Button("取消", role: .cancel) {}
@@ -70,9 +46,6 @@ struct RVMSettingsView: View {
             }
         } message: {
             Text("这将更新 RVM 到最新版本。确定要继续吗？")
-        }
-        .sheet(isPresented: $showingSwitchResult) {
-            switchResultSheet
         }
     }
 
@@ -144,111 +117,6 @@ struct RVMSettingsView: View {
         }
     }
 
-    // MARK: - Ruby 安装源
-
-    @ViewBuilder
-    private var rubySourceSection: some View {
-        Section {
-            currentSourceRow
-            sourceDescription
-            sourcePresets
-            Toggle("自定义镜像地址", isOn: $isCustomSource)
-                .toggleStyle(.switch)
-                .padding(.top, 4)
-            if isCustomSource {
-                VStack(spacing: 8) {
-                    CustomField(title: "镜像地址", placeholder: "https://mirrors.example.com/ruby/", text: $customSourceUrl)
-                }
-                .padding(.top, 4)
-            }
-            sourceActionButtons
-        } header: {
-            Text("Ruby 安装源")
-                .font(.headline)
-        }
-    }
-
-    private var currentSourceRow: some View {
-        HStack {
-            Label("当前 Ruby 安装源", systemImage: "globe")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            Spacer()
-            Text(currentSourceName)
-                .font(.subheadline.bold())
-                .foregroundColor(.accentColor)
-        }
-        .padding(.bottom, 8)
-    }
-
-    private var sourceDescription: some View {
-        Text("配置 RVM 安装 Ruby 时下载源码包的镜像地址，可加速安装。")
-            .font(.caption)
-            .foregroundColor(.secondary)
-            .padding(.bottom, 12)
-    }
-
-    private var sourcePresets: some View {
-        VStack(alignment: .leading, spacing: 10) {
-            Text("选择镜像")
-                .font(.subheadline)
-                .foregroundColor(.secondary)
-            HStack(spacing: 8) {
-                ForEach(RubyInstallSourcePreset.allPresets) { preset in
-                    presetButton(for: preset)
-                }
-            }
-        }
-    }
-
-    private func presetButton(for preset: RubyInstallSourcePreset) -> some View {
-        let isSelected = selectedSource == preset && !isCustomSource
-        return Button(action: {
-            selectedSource = preset
-            isCustomSource = false
-        }) {
-            Text(preset.name)
-                .font(.caption)
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(isSelected ? Color.accentColor : Color(nsColor: .controlBackgroundColor))
-                .foregroundColor(isSelected ? .white : .primary)
-                .cornerRadius(6)
-                .overlay(
-                    RoundedRectangle(cornerRadius: 6)
-                        .stroke(isSelected ? Color.accentColor : Color.gray.opacity(0.3), lineWidth: 1)
-                )
-        }
-        .buttonStyle(.plain)
-    }
-
-    private var sourceActionButtons: some View {
-        HStack(spacing: 12) {
-            Button(action: { Task { await detectCurrentSource() } }) {
-                Label("检测当前源", systemImage: "arrow.triangle.2.circlepath")
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(Color(nsColor: .controlBackgroundColor))
-                    .cornerRadius(8)
-            }
-            .buttonStyle(.plain)
-
-            Button(action: {
-                Task { await applySource() }
-            }) {
-                Label(isApplying ? "应用中..." : "应用安装源", systemImage: "checkmark.circle")
-                    .frame(maxWidth: .infinity)
-                    .padding(.vertical, 10)
-                    .background(isApplying ? Color.gray : Color.accentColor)
-                    .foregroundColor(.white)
-                    .cornerRadius(8)
-            }
-            .buttonStyle(.plain)
-            .disabled(isApplying)
-        }
-        .padding(.top, 8)
-    }
-
     // MARK: - 维护
 
     @ViewBuilder
@@ -302,75 +170,6 @@ struct RVMSettingsView: View {
             Text("关于")
                 .font(.headline)
         }
-    }
-
-    // MARK: - 结果弹窗
-
-    private var switchResultSheet: some View {
-        VStack(spacing: 16) {
-            Text("切换结果")
-                .font(.headline)
-            ScrollView {
-                Text(switchResultMessage)
-                    .font(.system(.body, design: .monospaced))
-                    .textSelection(.enabled)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-            }
-            .padding()
-            .background(Color(nsColor: .textBackgroundColor))
-            .cornerRadius(8)
-            Button("关闭") { showingSwitchResult = false }
-                .buttonStyle(.borderedProminent)
-        }
-        .padding(24)
-        .frame(width: 550, height: 350)
-    }
-    
-    private func detectCurrentSource() async {
-        let currentUrl = await viewModel.getRubyInstallSource()
-        // 匹配预设
-        for preset in RubyInstallSourcePreset.allPresets {
-            if currentUrl.contains(preset.url) || preset.url.contains(currentUrl) {
-                currentSourceName = preset.name
-                selectedSource = preset
-                isCustomSource = false
-                return
-            }
-        }
-        if currentUrl.isEmpty || currentUrl == "https://cache.ruby-lang.org/pub/ruby" {
-            currentSourceName = "官方源（默认）"
-        } else {
-            currentSourceName = currentUrl
-            customSourceUrl = currentUrl
-            isCustomSource = true
-        }
-    }
-    
-    private func applySource() async {
-        isApplying = true
-        defer { isApplying = false }
-        
-        let targetUrl: String
-        let targetName: String
-        
-        if isCustomSource {
-            guard !customSourceUrl.isEmpty else { return }
-            targetUrl = customSourceUrl
-            targetName = "自定义"
-        } else {
-            targetUrl = selectedSource.url
-            targetName = selectedSource.name
-        }
-        
-        let result = await viewModel.setRubyInstallSource(to: targetUrl)
-        switch result {
-        case .success(let output):
-            switchResultMessage = "已切换 Ruby 安装源到 \(targetName)\n\n地址: \(targetUrl)\n\n\(output)"
-            currentSourceName = targetName
-        case .failure(let error):
-            switchResultMessage = "切换失败: \(error)"
-        }
-        showingSwitchResult = true
     }
 }
 

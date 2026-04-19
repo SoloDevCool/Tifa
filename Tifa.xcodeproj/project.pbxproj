@@ -13,6 +13,7 @@
 		1FC7EEC114641F5A93848994 /* BrewPackage.swift in Sources */ = {isa = PBXBuildFile; fileRef = B45048FBE56071ECFB7B9128 /* BrewPackage.swift */; };
 		21F4275817F51A514C659F7A /* PyenvSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF1B1EEA647C1C2F1F368674 /* PyenvSettingsView.swift */; };
 		2A4758CAB331B1D3A0724851 /* NvmService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95A4190C87D253563291B14A /* NvmService.swift */; };
+		2BBBF76FE690A61D55AB0FD3 /* RVMSourceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD5376DD98BBF7C7DA23325B /* RVMSourceView.swift */; };
 		2DF26D46A411A1727A6797E0 /* NvmSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C290D840BFF9361202558060 /* NvmSettingsView.swift */; };
 		32A5259C3D77D57ACF258CBB /* RedisSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91D9971992E33719F46090DD /* RedisSettingsView.swift */; };
 		32BF4904643BF8F0E05D9943 /* SystemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE35909EF679ACEBC04FEA83 /* SystemView.swift */; };
@@ -91,6 +92,7 @@
 		9A35F7D90F44C6458A40413D /* HomebrewService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomebrewService.swift; sourceTree = "<group>"; };
 		AE9E45F8D247B1D152C02745 /* RustupPackagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RustupPackagesView.swift; sourceTree = "<group>"; };
 		B45048FBE56071ECFB7B9128 /* BrewPackage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrewPackage.swift; sourceTree = "<group>"; };
+		BD5376DD98BBF7C7DA23325B /* RVMSourceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RVMSourceView.swift; sourceTree = "<group>"; };
 		BFC604DCDDA08AF27B49D7E6 /* Tifa.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tifa.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C290D840BFF9361202558060 /* NvmSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NvmSettingsView.swift; sourceTree = "<group>"; };
 		D05321805876E4CB2A21B90D /* MySQLService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLService.swift; sourceTree = "<group>"; };
@@ -210,6 +212,7 @@
 				09C6A6525E7ACBF263651F2D /* RustupSettingsView.swift */,
 				379D3664A2131B70C4174BD0 /* RVMGemsetView.swift */,
 				7F2EE602DCA60AB48E4F9443 /* RVMSettingsView.swift */,
+				BD5376DD98BBF7C7DA23325B /* RVMSourceView.swift */,
 				089AB75A902D58D3175D6D86 /* SearchView.swift */,
 				FF00EC3F6703C0062270D358 /* SettingsView.swift */,
 				FE35909EF679ACEBC04FEA83 /* SystemView.swift */,
@@ -330,6 +333,7 @@
 				EEAE836FA54B7C1DF895FACC /* RVMGemsetView.swift in Sources */,
 				7185A35501FE52C1061A736E /* RVMService.swift in Sources */,
 				A37DF9FD186CD331CA063953 /* RVMSettingsView.swift in Sources */,
+				2BBBF76FE690A61D55AB0FD3 /* RVMSourceView.swift in Sources */,
 				379B31C5743235D0A91A1643 /* RedisService.swift in Sources */,
 				32A5259C3D77D57ACF258CBB /* RedisSettingsView.swift in Sources */,
 				F713A4FCC48FB61C24F26A37 /* RedisView.swift in Sources */,
