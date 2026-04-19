@@ -98,6 +98,7 @@ enum HomebrewTab: String, CaseIterable, Identifiable {
     case tap = "Tap"
     case search = "搜索"
     case outdated = "可用更新"
+    case mirror = "镜像源"
     case settings = "设置"
     
     var id: String { rawValue }
@@ -108,6 +109,7 @@ enum HomebrewTab: String, CaseIterable, Identifiable {
         case .tap: return "arrow.triangle.branch"
         case .search: return "magnifyingglass"
         case .outdated: return "arrow.triangle.2.circlepath"
+        case .mirror: return "globe"
         case .settings: return "gear"
         }
     }
@@ -466,6 +468,8 @@ struct ContentView: View {
                 SearchView()
             case .outdated:
                 OutdatedPackagesView()
+            case .mirror:
+                MirrorSourceView()
             case .settings:
                 SettingsView()
             }

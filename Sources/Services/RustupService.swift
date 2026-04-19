@@ -214,6 +214,7 @@ class RustupService: ObservableObject {
         loadingMessage = "正在卸载 rustup..."
 
         let home = NSHomeDirectory()
+        let env = rustupEnvironment
         let script = "rustup self uninstall -y && rm -rf \(home)/.rustup \(home)/.cargo"
 
         return await withCheckedContinuation { continuation in
@@ -222,7 +223,6 @@ class RustupService: ObservableObject {
                 let stdoutPipe = Pipe()
                 let stderrPipe = Pipe()
 
-                let env = self?.rustupEnvironment ?? ProcessInfo.processInfo.environment
                 process.executableURL = URL(fileURLWithPath: "/bin/bash")
                 process.arguments = ["-l", "-c", script]
                 process.environment = env

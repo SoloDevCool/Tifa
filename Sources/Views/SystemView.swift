@@ -8,7 +8,7 @@ struct SystemView: View {
         VStack(spacing: 0) {
             // 顶部栏
             HStack {
-                Text("系统监控")
+                Text("系统指标")
                     .font(.title2)
                     .fontWeight(.bold)
                 Spacer()
@@ -59,7 +59,8 @@ struct SystemView: View {
     private var metricsContent: some View {
         ScrollView {
             VStack(spacing: 16) {
-                
+                Spacer().frame(height: 12)
+
                 // 主要指标卡片（3 列）
                 LazyVGrid(columns: [
                     GridItem(.flexible(), spacing: 16),
@@ -132,9 +133,10 @@ struct SystemView: View {
                         .padding(.top, 2)
                     }
                     .padding(16)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                     .background(Color(nsColor: .controlBackgroundColor))
                     .cornerRadius(12)
-                    
+
                     // 交换空间
                     MetricCard(
                         title: "交换空间",
@@ -166,6 +168,7 @@ struct SystemView: View {
                 .background(Color(nsColor: .controlBackgroundColor))
                 .cornerRadius(12)
                 .padding(.horizontal)
+                .padding(.top, 12)
                 .padding(.bottom, 24)
             }
         }
@@ -257,18 +260,20 @@ struct MetricCard: View {
             
             if let progress = progress {
                 GeometryReader { geo in
-                    RoundedRectangle(cornerRadius: 3)
-                        .fill(Color(nsColor: .separatorColor))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 3)
-                                .fill(color.opacity(0.7))
-                                .frame(width: geo.size.width * min(progress, 1.0), height: geo.size.height)
-                        )
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(Color(nsColor: .separatorColor))
+                            .frame(width: geo.size.width, height: geo.size.height)
+                        RoundedRectangle(cornerRadius: 3)
+                            .fill(color.opacity(0.7))
+                            .frame(width: geo.size.width * min(progress, 1.0), height: geo.size.height)
+                    }
                 }
-                .frame(height: 6)
+                .frame(maxWidth: .infinity, maxHeight: 6, alignment: .leading)
             }
         }
         .padding(16)
+        .frame(maxWidth: .infinity, alignment: .leading)
         .background(Color(nsColor: .controlBackgroundColor))
         .cornerRadius(12)
     }

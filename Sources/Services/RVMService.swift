@@ -167,6 +167,7 @@ class RVMService: ObservableObject {
     /// 执行安装脚本（通用）
     private func runInstallScript(script: String, onOutput: @escaping @MainActor (String) -> Void) async -> OperationResult {
         let shell = "/bin/bash"
+        let env = rvmEnvironment
         
         return await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -181,7 +182,6 @@ class RVMService: ObservableObject {
                 let stdoutPipe = Pipe()
                 let stderrPipe = Pipe()
                 
-                let env = self.rvmEnvironment
                 process.executableURL = URL(fileURLWithPath: shell)
                 process.arguments = ["-l", "-c", script]
                 process.environment = env

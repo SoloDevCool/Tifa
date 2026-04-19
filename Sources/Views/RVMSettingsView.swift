@@ -31,218 +31,13 @@ struct RVMSettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 24) {
-                // RVM 状态
-                Section {
-                    HStack {
-                        Image(systemName: viewModel.isRVMAvailable ? "checkmark.circle.fill" : "xmark.circle.fill")
-                            .font(.title)
-                            .foregroundColor(viewModel.isRVMAvailable ? .green : .red)
-                        
-                        VStack(alignment: .leading) {
-                            Text(viewModel.isRVMAvailable ? "RVM 已安装" : "RVM 未安装")
-                                .font(.headline)
-                            Text(viewModel.isRVMAvailable ? "可以正常使用" : "请先安装 RVM")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        Spacer()
-                        
-                        if !viewModel.isRVMAvailable {
-                            Button(action: {
-                                Task { await viewModel.installRVM() }
-                            }) {
-                                Label("安装 RVM", systemImage: "arrow.down.circle")
-                                    .font(.caption)
-                            }
-                            .buttonStyle(.borderedProminent)
-                        } else {
-                            Button(role: .destructive, action: {
-                                showingUninstallAlert = true
-                            }) {
-                                Label("卸载 RVM", systemImage: "trash")
-                                    .font(.caption)
-                            }
-                            .buttonStyle(.bordered)
-                        }
-                    }
-                    .padding()
-                    .background(Color(nsColor: .controlBackgroundColor))
-                    .cornerRadius(10)
-                } header: {
-                    Text("状态")
-                        .font(.headline)
-                }
-                
+                statusSection
                 if viewModel.isRVMAvailable {
-                    // 安装信息
-                    Section {
-                        VStack(alignment: .leading, spacing: 12) {
-                            InfoRow(title: "安装路径", value: viewModel.rvmPath)
-                            InfoRow(title: "RVM 版本", value: viewModel.rvmVersion)
-                            InfoRow(title: "当前 Ruby", value: viewModel.currentRuby)
-                            InfoRow(title: "默认 Ruby", value: viewModel.defaultRuby)
-                            InfoRow(title: "Ruby 数量", value: "\(viewModel.installedCount)")
-                        }
-                        .padding()
-                        .background(Color(nsColor: .controlBackgroundColor))
-                        .cornerRadius(10)
-                    } header: {
-                        Text("安装信息")
-                            .font(.headline)
-                    }
-                    
-                    // Ruby 安装源配置
-                    Section {
-                        // 当前源
-                        HStack {
-                            Label("当前 Ruby 安装源", systemImage: "globe")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            Spacer()
-                            Text(currentSourceName)
-                                .font(.subheadline.bold())
-                                .foregroundColor(.accentColor)
-                        }
-                        .padding(.bottom, 8)
-                        
-                        Text("配置 RVM 安装 Ruby 时下载源码包的镜像地址，可加速安装。")
-                            .font(.caption)
-                            .foregroundColor(.secondary)
-                            .padding(.bottom, 12)
-                        
-                        // 预设选择
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("选择镜像")
-                                .font(.subheadline)
-                                .foregroundColor(.secondary)
-                            
-                            HStack(spacing: 8) {
-                                ForEach(RubyInstallSourcePreset.allPresets) { preset in
-                                    Button(action: {
-                                        selectedSource = preset
-                                        isCustomSource = false
-                                    }) {
-                                        Text(preset.name)
-                                            .font(.caption)
-                                            .padding(.horizontal, 12)
-                                            .padding(.vertical, 6)
-                                            .background(selectedSource == preset && !isCustomSource ? Color.accentColor : Color(nsColor: .controlBackgroundColor))
-                                            .foregroundColor(selectedSource == preset && !isCustomSource ? .white : .primary)
-                                            .cornerRadius(6)
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 6)
-                                                    .stroke(selectedSource == preset && !isCustomSource ? Color.accentColor : Color.gray.opacity(0.3), lineWidth: 1)
-                                            )
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                        }
-                        
-                        // 自定义
-                        Toggle("自定义镜像地址", isOn: $isCustomSource)
-                            .toggleStyle(.switch)
-                            .padding(.top, 4)
-                        
-                        if isCustomSource {
-                            VStack(spacing: 8) {
-                                CustomField(title: "镜像地址", placeholder: "https://mirrors.example.com/ruby/", text: $customSourceUrl)
-                            }
-                            .padding(.top, 4)
-                        }
-                        
-                        // 按钮行
-                        HStack(spacing: 12) {
-                            Button(action: { Task { await detectCurrentSource() } }) {
-                                Label("检测当前源", systemImage: "arrow.triangle.2.circlepath")
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 10)
-                                    .background(Color(nsColor: .controlBackgroundColor))
-                                    .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Button(action: {
-                                Task { await applySource() }
-                            }) {
-                                Label(isApplying ? "应用中..." : "应用安装源", systemImage: "checkmark.circle")
-                                    .frame(maxWidth: .infinity)
-                                    .padding(.vertical, 10)
-                                    .background(isApplying ? Color.gray : Color.accentColor)
-                                    .foregroundColor(.white)
-                                    .cornerRadius(8)
-                            }
-                            .buttonStyle(.plain)
-                            .disabled(isApplying)
-                        }
-                        .padding(.top, 8)
-                    } header: {
-                        Text("Ruby 安装源")
-                            .font(.headline)
-                    }
-                    
-                    // 维护操作
-                    Section {
-                        VStack(spacing: 12) {
-                            Button(action: { viewModel.showingCleanupAlert = true }) {
-                                HStack {
-                                    Label("清理旧版本", systemImage: "trash")
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding()
-                                .background(Color(nsColor: .controlBackgroundColor))
-                                .cornerRadius(10)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Button(action: { viewModel.showingUpdateAlert = true }) {
-                                HStack {
-                                    Label("更新 RVM", systemImage: "arrow.triangle.2.circlepath")
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding()
-                                .background(Color(nsColor: .controlBackgroundColor))
-                                .cornerRadius(10)
-                            }
-                            .buttonStyle(.plain)
-                            
-                            Button(action: { Task { await viewModel.reinstallAllGems() } }) {
-                                HStack {
-                                    Label("重装所有 Gems", systemImage: "arrow.counterclockwise")
-                                    Spacer()
-                                    Image(systemName: "chevron.right")
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding()
-                                .background(Color(nsColor: .controlBackgroundColor))
-                                .cornerRadius(10)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    } header: {
-                        Text("维护")
-                            .font(.headline)
-                    }
+                    installInfoSection
+                    rubySourceSection
+                    maintenanceSection
                 }
-                
-                // 关于
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        InfoRow(title: "版本", value: "1.0.0")
-                        InfoRow(title: "兼容系统", value: "macOS 13.0+")
-                    }
-                    .padding()
-                    .background(Color(nsColor: .controlBackgroundColor))
-                    .cornerRadius(10)
-                } header: {
-                    Text("关于")
-                        .font(.headline)
-                }
+                aboutSection
             }
             .padding()
         }
@@ -277,26 +72,258 @@ struct RVMSettingsView: View {
             Text("这将更新 RVM 到最新版本。确定要继续吗？")
         }
         .sheet(isPresented: $showingSwitchResult) {
-            VStack(spacing: 16) {
-                Text("切换结果")
-                    .font(.headline)
-                
-                ScrollView {
-                    Text(switchResultMessage)
-                        .font(.system(.body, design: .monospaced))
-                        .textSelection(.enabled)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                }
-                .padding()
-                .background(Color(nsColor: .textBackgroundColor))
-                .cornerRadius(8)
-                
-                Button("关闭") { showingSwitchResult = false }
-                    .buttonStyle(.borderedProminent)
-            }
-            .padding(24)
-            .frame(width: 550, height: 350)
+            switchResultSheet
         }
+    }
+
+    // MARK: - 状态
+
+    @ViewBuilder
+    private var statusSection: some View {
+        Section {
+            HStack {
+                Image(systemName: viewModel.isRVMAvailable ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .font(.title)
+                    .foregroundColor(viewModel.isRVMAvailable ? .green : .red)
+
+                VStack(alignment: .leading) {
+                    Text(viewModel.isRVMAvailable ? "RVM 已安装" : "RVM 未安装")
+                        .font(.headline)
+                    Text(viewModel.isRVMAvailable ? "可以正常使用" : "请先安装 RVM")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+
+                Spacer()
+
+                if !viewModel.isRVMAvailable {
+                    Button(action: {
+                        Task { await viewModel.installRVM() }
+                    }) {
+                        Label("安装 RVM", systemImage: "arrow.down.circle")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.borderedProminent)
+                } else {
+                    Button(role: .destructive, action: {
+                        showingUninstallAlert = true
+                    }) {
+                        Label("卸载 RVM", systemImage: "trash")
+                            .font(.caption)
+                    }
+                    .buttonStyle(.bordered)
+                }
+            }
+            .padding()
+            .background(Color(nsColor: .controlBackgroundColor))
+            .cornerRadius(10)
+        } header: {
+            Text("状态")
+                .font(.headline)
+        }
+    }
+
+    // MARK: - 安装信息
+
+    @ViewBuilder
+    private var installInfoSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 12) {
+                InfoRow(title: "安装路径", value: viewModel.rvmPath)
+                InfoRow(title: "RVM 版本", value: viewModel.rvmVersion)
+                InfoRow(title: "当前 Ruby", value: viewModel.currentRuby)
+                InfoRow(title: "默认 Ruby", value: viewModel.defaultRuby)
+                InfoRow(title: "Ruby 数量", value: "\(viewModel.installedCount)")
+            }
+            .padding()
+            .background(Color(nsColor: .controlBackgroundColor))
+            .cornerRadius(10)
+        } header: {
+            Text("安装信息")
+                .font(.headline)
+        }
+    }
+
+    // MARK: - Ruby 安装源
+
+    @ViewBuilder
+    private var rubySourceSection: some View {
+        Section {
+            currentSourceRow
+            sourceDescription
+            sourcePresets
+            Toggle("自定义镜像地址", isOn: $isCustomSource)
+                .toggleStyle(.switch)
+                .padding(.top, 4)
+            if isCustomSource {
+                VStack(spacing: 8) {
+                    CustomField(title: "镜像地址", placeholder: "https://mirrors.example.com/ruby/", text: $customSourceUrl)
+                }
+                .padding(.top, 4)
+            }
+            sourceActionButtons
+        } header: {
+            Text("Ruby 安装源")
+                .font(.headline)
+        }
+    }
+
+    private var currentSourceRow: some View {
+        HStack {
+            Label("当前 Ruby 安装源", systemImage: "globe")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            Spacer()
+            Text(currentSourceName)
+                .font(.subheadline.bold())
+                .foregroundColor(.accentColor)
+        }
+        .padding(.bottom, 8)
+    }
+
+    private var sourceDescription: some View {
+        Text("配置 RVM 安装 Ruby 时下载源码包的镜像地址，可加速安装。")
+            .font(.caption)
+            .foregroundColor(.secondary)
+            .padding(.bottom, 12)
+    }
+
+    private var sourcePresets: some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Text("选择镜像")
+                .font(.subheadline)
+                .foregroundColor(.secondary)
+            HStack(spacing: 8) {
+                ForEach(RubyInstallSourcePreset.allPresets) { preset in
+                    presetButton(for: preset)
+                }
+            }
+        }
+    }
+
+    private func presetButton(for preset: RubyInstallSourcePreset) -> some View {
+        let isSelected = selectedSource == preset && !isCustomSource
+        return Button(action: {
+            selectedSource = preset
+            isCustomSource = false
+        }) {
+            Text(preset.name)
+                .font(.caption)
+                .padding(.horizontal, 12)
+                .padding(.vertical, 6)
+                .background(isSelected ? Color.accentColor : Color(nsColor: .controlBackgroundColor))
+                .foregroundColor(isSelected ? .white : .primary)
+                .cornerRadius(6)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 6)
+                        .stroke(isSelected ? Color.accentColor : Color.gray.opacity(0.3), lineWidth: 1)
+                )
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var sourceActionButtons: some View {
+        HStack(spacing: 12) {
+            Button(action: { Task { await detectCurrentSource() } }) {
+                Label("检测当前源", systemImage: "arrow.triangle.2.circlepath")
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(Color(nsColor: .controlBackgroundColor))
+                    .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
+
+            Button(action: {
+                Task { await applySource() }
+            }) {
+                Label(isApplying ? "应用中..." : "应用安装源", systemImage: "checkmark.circle")
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 10)
+                    .background(isApplying ? Color.gray : Color.accentColor)
+                    .foregroundColor(.white)
+                    .cornerRadius(8)
+            }
+            .buttonStyle(.plain)
+            .disabled(isApplying)
+        }
+        .padding(.top, 8)
+    }
+
+    // MARK: - 维护
+
+    @ViewBuilder
+    private var maintenanceSection: some View {
+        Section {
+            VStack(spacing: 12) {
+                maintenanceButton(title: "清理旧版本", icon: "trash") {
+                    viewModel.showingCleanupAlert = true
+                }
+                maintenanceButton(title: "更新 RVM", icon: "arrow.triangle.2.circlepath") {
+                    viewModel.showingUpdateAlert = true
+                }
+                maintenanceButton(title: "重装所有 Gems", icon: "arrow.counterclockwise") {
+                    Task { await viewModel.reinstallAllGems() }
+                }
+            }
+        } header: {
+            Text("维护")
+                .font(.headline)
+        }
+    }
+
+    private func maintenanceButton(title: String, icon: String, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack {
+                Label(title, systemImage: icon)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .foregroundColor(.secondary)
+            }
+            .padding()
+            .background(Color(nsColor: .controlBackgroundColor))
+            .cornerRadius(10)
+        }
+        .buttonStyle(.plain)
+    }
+
+    // MARK: - 关于
+
+    @ViewBuilder
+    private var aboutSection: some View {
+        Section {
+            VStack(alignment: .leading, spacing: 8) {
+                InfoRow(title: "版本", value: "1.0.0")
+                InfoRow(title: "兼容系统", value: "macOS 13.0+")
+            }
+            .padding()
+            .background(Color(nsColor: .controlBackgroundColor))
+            .cornerRadius(10)
+        } header: {
+            Text("关于")
+                .font(.headline)
+        }
+    }
+
+    // MARK: - 结果弹窗
+
+    private var switchResultSheet: some View {
+        VStack(spacing: 16) {
+            Text("切换结果")
+                .font(.headline)
+            ScrollView {
+                Text(switchResultMessage)
+                    .font(.system(.body, design: .monospaced))
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .padding()
+            .background(Color(nsColor: .textBackgroundColor))
+            .cornerRadius(8)
+            Button("关闭") { showingSwitchResult = false }
+                .buttonStyle(.borderedProminent)
+        }
+        .padding(24)
+        .frame(width: 550, height: 350)
     }
     
     private func detectCurrentSource() async {
@@ -429,13 +456,30 @@ class RVMSettingsViewModel: ObservableObject {
 private struct InfoRow: View {
     let title: String
     let value: String
-    
+
     var body: some View {
         HStack {
             Text(title)
                 .foregroundColor(.secondary)
             Spacer()
             Text(value)
+        }
+    }
+}
+
+private struct CustomField: View {
+    let title: String
+    let placeholder: String
+    @Binding var text: String
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title)
+                .font(.caption)
+                .foregroundColor(.secondary)
+            TextField(placeholder, text: $text)
+                .textFieldStyle(.roundedBorder)
+                .font(.system(.body, design: .monospaced))
         }
     }
 }

@@ -18,6 +18,7 @@
 		3783A5F7C0CAA14ECBF331B1 /* PyenvService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E976FC7A4E6057EE150F860 /* PyenvService.swift */; };
 		379B31C5743235D0A91A1643 /* RedisService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D65CA5BA61EB86D4D3A127E8 /* RedisService.swift */; };
 		386AA637A58A6E5A391F0C42 /* HomebrewService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9A35F7D90F44C6458A40413D /* HomebrewService.swift */; };
+		3A9445F404A7F8662317D1C7 /* MirrorSourceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEBB78E0508101CAD4DB4D29 /* MirrorSourceView.swift */; };
 		3E0D54885304D578C1213F4F /* MySQLService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05321805876E4CB2A21B90D /* MySQLService.swift */; };
 		40356E1BA9F0AB8AFC51B233 /* MySQLConfigModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8BDE346134D1CD2F8AA05EC /* MySQLConfigModel.swift */; };
 		447A8BC33DFDBE2A2CBF00F6 /* InstalledPackagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70407A1BAC51559D0AF761C9 /* InstalledPackagesView.swift */; };
@@ -101,6 +102,7 @@
 		F73B25EFD6F6FE9E861DB02E /* PortMonitorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortMonitorView.swift; sourceTree = "<group>"; };
 		FE35909EF679ACEBC04FEA83 /* SystemView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemView.swift; sourceTree = "<group>"; };
 		FEABF8AC4A428A93B58BF212 /* MongoDbService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoDbService.swift; sourceTree = "<group>"; };
+		FEBB78E0508101CAD4DB4D29 /* MirrorSourceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MirrorSourceView.swift; sourceTree = "<group>"; };
 		FF00EC3F6703C0062270D358 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -186,6 +188,7 @@
 				1ADF9AB1EC38BD6F9598CF7C /* ContentView.swift */,
 				E8C1184279B38E238CD7025E /* EnvView.swift */,
 				70407A1BAC51559D0AF761C9 /* InstalledPackagesView.swift */,
+				FEBB78E0508101CAD4DB4D29 /* MirrorSourceView.swift */,
 				7E5B06FBEBBB338FADA49E70 /* MongoDbSettingsView.swift */,
 				69D3578526D12C86344585DE /* MongoDbView.swift */,
 				8397BC603A3D530A63469144 /* MySQLVersionsView.swift */,
@@ -302,6 +305,7 @@
 				FA367B2E7D617BEB77BF8521 /* FlowLayout.swift in Sources */,
 				386AA637A58A6E5A391F0C42 /* HomebrewService.swift in Sources */,
 				447A8BC33DFDBE2A2CBF00F6 /* InstalledPackagesView.swift in Sources */,
+				3A9445F404A7F8662317D1C7 /* MirrorSourceView.swift in Sources */,
 				502708469DA9003765D8EB0F /* MongoDbService.swift in Sources */,
 				08AE768DA9EB4E3087A5FC42 /* MongoDbSettingsView.swift in Sources */,
 				9C254FA7574FE004548A98FB /* MongoDbView.swift in Sources */,
