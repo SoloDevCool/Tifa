@@ -16,6 +16,7 @@
 		2A4758CAB331B1D3A0724851 /* NvmService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95A4190C87D253563291B14A /* NvmService.swift */; };
 		2BBBF76FE690A61D55AB0FD3 /* RVMSourceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BD5376DD98BBF7C7DA23325B /* RVMSourceView.swift */; };
 		2DF26D46A411A1727A6797E0 /* NvmSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C290D840BFF9361202558060 /* NvmSettingsView.swift */; };
+		2E975A44F28A4471C7C7A318 /* JenvPackagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8846857D68B9FB959AC96438 /* JenvPackagesView.swift */; };
 		32A5259C3D77D57ACF258CBB /* RedisSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91D9971992E33719F46090DD /* RedisSettingsView.swift */; };
 		32BF4904643BF8F0E05D9943 /* SystemView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FE35909EF679ACEBC04FEA83 /* SystemView.swift */; };
 		3783A5F7C0CAA14ECBF331B1 /* PyenvService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5E976FC7A4E6057EE150F860 /* PyenvService.swift */; };
@@ -25,6 +26,7 @@
 		3E0D54885304D578C1213F4F /* MySQLService.swift in Sources */ = {isa = PBXBuildFile; fileRef = D05321805876E4CB2A21B90D /* MySQLService.swift */; };
 		40356E1BA9F0AB8AFC51B233 /* MySQLConfigModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8BDE346134D1CD2F8AA05EC /* MySQLConfigModel.swift */; };
 		447A8BC33DFDBE2A2CBF00F6 /* InstalledPackagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70407A1BAC51559D0AF761C9 /* InstalledPackagesView.swift */; };
+		4746FE6BC3D2045A9F67AFCB /* JenvSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41A4E3E464F238605F34C199 /* JenvSettingsView.swift */; };
 		502708469DA9003765D8EB0F /* MongoDbService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEABF8AC4A428A93B58BF212 /* MongoDbService.swift */; };
 		63FAFB2D7A0F1D63D93933BD /* RubyVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95B20BD639F829A4F88F155D /* RubyVersion.swift */; };
 		6AA795126BD38BDAB344A106 /* SystemService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91860FD6871E07EFEF9ED164 /* SystemService.swift */; };
@@ -52,6 +54,7 @@
 		DC594C36FE438E28279C72F8 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 089AB75A902D58D3175D6D86 /* SearchView.swift */; };
 		E0E77CA6413DC48DA89DDF0E /* TifaApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BDA1E999A65D88FBAA0C772 /* TifaApp.swift */; };
 		E1B562497FF497D29AABEC84 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 97F8A09ECC30F2DC2E51201A /* Assets.xcassets */; };
+		EB173D9D069824187320E692 /* JenvService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8729A8087E19C6FE3E575FC3 /* JenvService.swift */; };
 		EEAE836FA54B7C1DF895FACC /* RVMGemsetView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 379D3664A2131B70C4174BD0 /* RVMGemsetView.swift */; };
 		F683395D2AB5E373962AC97E /* OutdatedPackagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 56E4F1F7E6CDA581774D627E /* OutdatedPackagesView.swift */; };
 		F713A4FCC48FB61C24F26A37 /* RedisView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59DDFD689DFC5D12812BA700 /* RedisView.swift */; };
@@ -69,6 +72,7 @@
 		28ADEBC090C9B610E92B39C6 /* RubyPackagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RubyPackagesView.swift; sourceTree = "<group>"; };
 		31E942F8C2A72168136A16FC /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
 		379D3664A2131B70C4174BD0 /* RVMGemsetView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RVMGemsetView.swift; sourceTree = "<group>"; };
+		41A4E3E464F238605F34C199 /* JenvSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JenvSettingsView.swift; sourceTree = "<group>"; };
 		427BA2D1A7E8751877B8B90C /* EnvService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvService.swift; sourceTree = "<group>"; };
 		56E4F1F7E6CDA581774D627E /* OutdatedPackagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OutdatedPackagesView.swift; sourceTree = "<group>"; };
 		59DDFD689DFC5D12812BA700 /* RedisView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisView.swift; sourceTree = "<group>"; };
@@ -83,6 +87,8 @@
 		7F81707194882183E3EB16DC /* ToolSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ToolSettingsView.swift; sourceTree = "<group>"; };
 		8271F4334066D4AB95BAE1AC /* PostgresSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostgresSettingsView.swift; sourceTree = "<group>"; };
 		8397BC603A3D530A63469144 /* MySQLVersionsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLVersionsView.swift; sourceTree = "<group>"; };
+		8729A8087E19C6FE3E575FC3 /* JenvService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JenvService.swift; sourceTree = "<group>"; };
+		8846857D68B9FB959AC96438 /* JenvPackagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JenvPackagesView.swift; sourceTree = "<group>"; };
 		89B7BCF74AECF8BFE5943FD5 /* PostgresService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PostgresService.swift; sourceTree = "<group>"; };
 		8A2A064C91BB125EC0D083D0 /* PyenvSourceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PyenvSourceView.swift; sourceTree = "<group>"; };
 		91860FD6871E07EFEF9ED164 /* SystemService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SystemService.swift; sourceTree = "<group>"; };
@@ -145,6 +151,7 @@
 			children = (
 				427BA2D1A7E8751877B8B90C /* EnvService.swift */,
 				9A35F7D90F44C6458A40413D /* HomebrewService.swift */,
+				8729A8087E19C6FE3E575FC3 /* JenvService.swift */,
 				FEABF8AC4A428A93B58BF212 /* MongoDbService.swift */,
 				D05321805876E4CB2A21B90D /* MySQLService.swift */,
 				95A4190C87D253563291B14A /* NvmService.swift */,
@@ -194,6 +201,8 @@
 				1ADF9AB1EC38BD6F9598CF7C /* ContentView.swift */,
 				E8C1184279B38E238CD7025E /* EnvView.swift */,
 				70407A1BAC51559D0AF761C9 /* InstalledPackagesView.swift */,
+				8846857D68B9FB959AC96438 /* JenvPackagesView.swift */,
+				41A4E3E464F238605F34C199 /* JenvSettingsView.swift */,
 				FEBB78E0508101CAD4DB4D29 /* MirrorSourceView.swift */,
 				7E5B06FBEBBB338FADA49E70 /* MongoDbSettingsView.swift */,
 				69D3578526D12C86344585DE /* MongoDbView.swift */,
@@ -314,6 +323,9 @@
 				FA367B2E7D617BEB77BF8521 /* FlowLayout.swift in Sources */,
 				386AA637A58A6E5A391F0C42 /* HomebrewService.swift in Sources */,
 				447A8BC33DFDBE2A2CBF00F6 /* InstalledPackagesView.swift in Sources */,
+				2E975A44F28A4471C7C7A318 /* JenvPackagesView.swift in Sources */,
+				EB173D9D069824187320E692 /* JenvService.swift in Sources */,
+				4746FE6BC3D2045A9F67AFCB /* JenvSettingsView.swift in Sources */,
 				3A9445F404A7F8662317D1C7 /* MirrorSourceView.swift in Sources */,
 				502708469DA9003765D8EB0F /* MongoDbService.swift in Sources */,
 				08AE768DA9EB4E3087A5FC42 /* MongoDbSettingsView.swift in Sources */,
