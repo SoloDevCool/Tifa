@@ -77,4 +77,21 @@ enum BrewCommand {
 enum OperationResult {
     case success(String)
     case failure(String)
+
+    var isSuccess: Bool {
+        if case .success = self { return true }
+        return false
+    }
+
+    var isFailure: Bool {
+        if case .failure = self { return true }
+        return false
+    }
+
+    var description: String {
+        switch self {
+        case .success(let msg): return msg
+        case .failure(let msg): return msg
+        }
+    }
 }

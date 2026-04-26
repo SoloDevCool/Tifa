@@ -49,6 +49,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
     case gvm = "GVM"
     case system = "系统监控"
     case env = "环境变量"
+    case hosts = "Hosts"
     case toolSettings = "工具设置"
     
     var id: String { rawValue }
@@ -68,13 +69,14 @@ enum ToolCategory: String, CaseIterable, Identifiable {
         case .gvm: return "chevron.left.forwardslash.chevron.right"
         case .system: return "chart.bar"
         case .env: return "gearshape.2"
+        case .hosts: return "network"
         case .toolSettings: return "gearshape"
         }
     }
     
     var group: CategoryGroup {
         switch self {
-        case .system, .homebrew, .env: return .basic
+        case .system, .homebrew, .env, .hosts: return .basic
         case .rvm, .pyenv, .nvm, .jenv, .gvm, .rustup: return .language
         case .mysql, .postgres, .redis, .mongodb: return .database
         case .toolSettings: return .settings
@@ -89,7 +91,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
             // 基础服务内按指定顺序排列
             let ordered: [ToolCategory] = {
                 switch group {
-                case .basic: return [.system, .homebrew, .env]
+                case .basic: return [.system, .homebrew, .env, .hosts]
                 case .language: return [.rvm, .pyenv, .nvm, .jenv, .gvm, .rustup]
                 case .database: return items
                 case .settings: return items
@@ -335,7 +337,7 @@ struct ContentView: View {
             Divider()
             
             // 第二列：子菜单（环境变量和工具设置不需要）
-            if selectedCategory != .env && selectedCategory != .toolSettings {
+            if selectedCategory != .env && selectedCategory != .hosts && selectedCategory != .toolSettings {
                 subSidebar
                 
                 Divider()
@@ -517,7 +519,7 @@ struct ContentView: View {
             } else {
                 VStack {
                     Spacer()
-                    Text("环境变量管理")
+                    Text(selectedCategory == .env ? "环境变量管理" : "Hosts 文件管理")
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding()
@@ -628,6 +630,8 @@ struct ContentView: View {
             }
         case .env:
             EnvView()
+        case .hosts:
+            HostsView()
         case .toolSettings:
             ToolSettingsView()
         case .system:
