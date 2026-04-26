@@ -24,6 +24,9 @@ class RustupService: ObservableObject {
     @Published var isLoading = false
     @Published var loadingMessage = ""
 
+    /// 缓存已安装版本列表（供 View 层快速查询）
+    var cachedInstalledVersions: [String] = []
+
     /// 当前正在执行的安装进程（用于取消）
     private var currentInstallProcess: Process?
 
@@ -438,15 +441,49 @@ class RustupService: ObservableObject {
         }
     }
 
-    /// 获取可用安装的工具链列表
+    /// 获取可用安装的工具链列表（已安装 + 远程可安装）
     func listAvailableVersions() async -> [String] {
-        let result = await executeCommand(arguments: ["toolchain", "list"])
-        switch result {
-        case .success(let output):
-            return parseAvailableToolchains(output: output)
-        case .failure:
-            return []
+        // 获取已安装的工具链
+        let installedResult = await executeCommand(arguments: ["toolchain", "list"])
+        var installedVersions: Set<String> = []
+        if case .success(let output) = installedResult {
+            installedVersions = Set(parseAvailableToolchains(output: output).map { normalizeToolchainName($0) })
         }
+
+        // 获取远程可用的稳定版列表
+        let remoteResult = await executeCommand(arguments: ["toolchain", "list", "--all"])
+        if case .success(let output) = remoteResult {
+            let remoteVersions = parseAvailableToolchains(output: output).map { normalizeToolchainName($0) }
+            // 合并：远程全部 + 已安装（确保不遗漏）
+            var all = Set(remoteVersions)
+            all.formUnion(installedVersions)
+            return all.sorted { a, b in
+                a.compare(b, options: .numeric) == .orderedDescending
+            }
+        }
+
+        // 回退：仅返回已安装版本
+        return installedVersions.sorted { a, b in
+            a.compare(b, options: .numeric) == .orderedDescending
+        }
+    }
+
+    /// 获取最新稳定版版本号
+    func getLatestStableVersion() async -> String {
+        let result = await executeCommand(arguments: ["check"])
+        if case .success(let output) = result {
+            // 输出格式: stable-x86_64-apple-darwin - Up to date : 1.77.0 (...)
+            let lines = output.components(separatedBy: .newlines)
+            for line in lines {
+                if line.contains("stable") {
+                    // 提取版本号
+                    if let range = line.range(of: "\\d+\\.\\d+\\.\\d+", options: .regularExpression) {
+                        return String(line[range])
+                    }
+                }
+            }
+        }
+        return ""
     }
 
     /// 安装工具链版本
@@ -666,6 +703,13 @@ class RustupService: ObservableObject {
         return output.components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespaces) }
             .filter { !$0.isEmpty }
+    }
+
+    /// 规范化工具链名称，去掉 (default) 等后缀
+    private func normalizeToolchainName(_ name: String) -> String {
+        name.replacingOccurrences(of: " (default)", with: "")
+            .replacingOccurrences(of: " (installed)", with: "")
+            .trimmingCharacters(in: .whitespaces)
     }
 
     /// 执行 rustup 命令

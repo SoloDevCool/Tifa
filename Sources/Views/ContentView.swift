@@ -37,6 +37,7 @@ enum CategoryGroup: String, CaseIterable, Identifiable {
 
 enum ToolCategory: String, CaseIterable, Identifiable {
     case homebrew = "Homebrew"
+    case xcode = "Xcode"
     case rvm = "RVM"
     case pyenv = "pyenv"
     case mysql = "MySQL"
@@ -57,6 +58,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .homebrew: return "shippingbox"
+        case .xcode: return "hammer"
         case .rvm: return "cube"
         case .pyenv: return "leaf"
         case .mysql: return "cylinder"
@@ -76,7 +78,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
     
     var group: CategoryGroup {
         switch self {
-        case .system, .homebrew, .env, .hosts: return .basic
+        case .system, .homebrew, .xcode, .env, .hosts: return .basic
         case .rvm, .pyenv, .nvm, .jenv, .gvm, .rustup: return .language
         case .mysql, .postgres, .redis, .mongodb: return .database
         case .toolSettings: return .settings
@@ -91,7 +93,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
             // 基础服务内按指定顺序排列
             let ordered: [ToolCategory] = {
                 switch group {
-                case .basic: return [.system, .homebrew, .env, .hosts]
+                case .basic: return [.system, .homebrew, .xcode, .env, .hosts]
                 case .language: return [.rvm, .pyenv, .nvm, .jenv, .gvm, .rustup]
                 case .database: return items
                 case .settings: return items
@@ -337,7 +339,7 @@ struct ContentView: View {
             Divider()
             
             // 第二列：子菜单（环境变量和工具设置不需要）
-            if selectedCategory != .env && selectedCategory != .hosts && selectedCategory != .toolSettings {
+            if selectedCategory != .env && selectedCategory != .hosts && selectedCategory != .toolSettings && selectedCategory != .xcode {
                 subSidebar
                 
                 Divider()
@@ -519,7 +521,7 @@ struct ContentView: View {
             } else {
                 VStack {
                     Spacer()
-                    Text(selectedCategory == .env ? "环境变量管理" : "Hosts 文件管理")
+                    Text(selectedCategory == .env ? "环境变量管理" : (selectedCategory == .xcode ? "Xcode 管理" : "Hosts 文件管理"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding()
@@ -628,6 +630,8 @@ struct ContentView: View {
             case .settings:
                 GvmSettingsView()
             }
+        case .xcode:
+            XcodeView()
         case .env:
             EnvView()
         case .hosts:

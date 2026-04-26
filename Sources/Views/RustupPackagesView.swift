@@ -9,6 +9,8 @@ struct RustupPackagesView: View {
     @State private var packageToUninstall: RustupPackageInfo?
     @State private var showingInstallProgress = false
     @State private var installVersion = ""
+    @State private var showingInstallSheet = false
+    @State private var customVersion = ""
 
     var filteredPackages: [RustupPackageInfo] {
         if searchText.isEmpty {
@@ -57,6 +59,13 @@ struct RustupPackagesView: View {
                 if viewModel.isLoading {
                     ProgressView()
                         .scaleEffect(0.7)
+                }
+
+                if viewModel.isRustupAvailable {
+                    Button(action: { showingInstallSheet = true }) {
+                        Label("安装新版本", systemImage: "plus")
+                    }
+                    .buttonStyle(.borderedProminent)
                 }
             }
             .padding(.horizontal, 20)
@@ -255,6 +264,14 @@ struct RustupPackagesView: View {
                 onRetryCompile: nil,
                 onAutoFix: nil
             )
+        }
+        .sheet(isPresented: $showingInstallSheet) {
+            InstallRustupVersionSheet { version in
+                showingInstallSheet = false
+                installVersion = version
+                showingInstallProgress = true
+                Task { await viewModel.install(version) }
+            }
         }
     }
 }
@@ -478,4 +495,131 @@ class RustupPackagesViewModel: ObservableObject {
 
 #Preview {
     RustupPackagesView()
+}
+
+// MARK: - 安装版本选择 Sheet
+
+struct InstallRustupVersionSheet: View {
+    let onInstall: (String) -> Void
+    @Environment(\.presentationMode) var presentationMode
+    @StateObject private var service = RustupService.shared
+    @State private var customVersion = ""
+    @State private var quickVersions: [String] = []
+    @State private var latestStable = ""
+
+    private var installedVersions: Set<String> {
+        Set(service.cachedInstalledVersions)
+    }
+
+    var body: some View {
+        VStack(spacing: 20) {
+            HStack {
+                Text("安装 Rust 工具链")
+                    .font(.headline)
+                Spacer()
+                Button("关闭") { presentationMode.wrappedValue.dismiss() }
+            }
+
+            // 快速安装最新稳定版
+            if !latestStable.isEmpty {
+                Button(action: { onInstall("stable") }) {
+                    HStack {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("最新稳定版 (stable)")
+                                .font(.body)
+                            Text("Rust \(latestStable)")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
+                        }
+                        Spacer()
+                        Image(systemName: "arrow.down.circle")
+                    }
+                    .padding()
+                    .background(Color.accentColor.opacity(0.1))
+                    .cornerRadius(8)
+                }
+                .buttonStyle(.plain)
+            }
+
+            // 常用版本快捷按钮
+            VStack(alignment: .leading, spacing: 8) {
+                Text("常用版本")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                FlowLayout(spacing: 8) {
+                    ForEach(quickVersions, id: \.self) { version in
+                        let isInstalled = installedVersions.contains(version) || installedVersions.contains("\(version)-x86_64-apple-darwin")
+                        Button(action: {
+                            onInstall(version)
+                        }) {
+                            HStack(spacing: 4) {
+                                Text(version)
+                                    .font(.system(.caption, design: .monospaced))
+                                if isInstalled {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .font(.caption2)
+                                        .foregroundColor(.green)
+                                }
+                            }
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 5)
+                            .background(Color(nsColor: .controlBackgroundColor))
+                            .cornerRadius(6)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 6)
+                                    .stroke(isInstalled ? Color.green.opacity(0.3) : Color.gray.opacity(0.3), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(isInstalled)
+                    }
+                }
+            }
+
+            // 自定义版本号
+            VStack(alignment: .leading, spacing: 8) {
+                Text("自定义版本号")
+                    .font(.subheadline)
+                    .foregroundColor(.secondary)
+
+                HStack {
+                    TextField("例如: 1.75.0, nightly, beta", text: $customVersion)
+                        .textFieldStyle(.roundedBorder)
+                        .onSubmit { installCustom() }
+
+                    Button("安装") { installCustom() }
+                        .buttonStyle(.borderedProminent)
+                        .disabled(customVersion.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+
+                Text("支持格式: 1.75.0, stable, beta, nightly, nightly-YYYY-MM-DD")
+                    .font(.caption2)
+                    .foregroundColor(.secondary)
+            }
+
+            HStack {
+                Spacer()
+                Button("取消") { presentationMode.wrappedValue.dismiss() }
+                    .buttonStyle(.bordered)
+            }
+        }
+        .padding(24)
+        .frame(width: 500, height: 380)
+        .task {
+            latestStable = await service.getLatestStableVersion()
+            // 常用版本列表
+            let installed = await service.listInstalledVersions()
+            await MainActor.run {
+                service.cachedInstalledVersions = installed.map { $0.version }
+            }
+            quickVersions = ["stable", "beta", "nightly"]
+        }
+    }
+
+    private func installCustom() {
+        let version = customVersion.trimmingCharacters(in: .whitespaces)
+        guard !version.isEmpty else { return }
+        onInstall(version)
+    }
 }

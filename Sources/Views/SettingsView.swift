@@ -83,7 +83,10 @@ struct SettingsView: View {
                         }
                         .buttonStyle(.plain)
                         
-                        Button(action: { showingDoctorAlert = true }) {
+                        Button(action: {
+                            Task { await viewModel.runDoctor() }
+                            showingDoctorAlert = true
+                        }) {
                             HStack {
                                 Label("运行诊断", systemImage: "stethoscope")
                                 Spacer()

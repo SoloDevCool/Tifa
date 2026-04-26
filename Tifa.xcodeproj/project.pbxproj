@@ -30,6 +30,7 @@
 		502708469DA9003765D8EB0F /* MongoDbService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEABF8AC4A428A93B58BF212 /* MongoDbService.swift */; };
 		54797A4C0FF1F3DE626E53F1 /* HostsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E1C707E81839717DE4697F /* HostsView.swift */; };
 		63FAFB2D7A0F1D63D93933BD /* RubyVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95B20BD639F829A4F88F155D /* RubyVersion.swift */; };
+		6551B4CB69E93FC5FCF37F50 /* XcodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25CE128F2494D66C03E7FA6D /* XcodeView.swift */; };
 		6AA795126BD38BDAB344A106 /* SystemService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91860FD6871E07EFEF9ED164 /* SystemService.swift */; };
 		6D1A9E29ECF59C5286BA216B /* EmptyStateView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EDAB995097AEC0FF312249F9 /* EmptyStateView.swift */; };
 		7185A35501FE52C1061A736E /* RVMService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 23B07DD549E554375ECFE36A /* RVMService.swift */; };
@@ -43,6 +44,7 @@
 		A1788C805E1452D8BF67563A /* MySQLView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DC5E7BC9F3C6F3A8A8581857 /* MySQLView.swift */; };
 		A29A00FEAD5FEB2668FE26BC /* MySQLVersionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8397BC603A3D530A63469144 /* MySQLVersionsView.swift */; };
 		A37DF9FD186CD331CA063953 /* RVMSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2EE602DCA60AB48E4F9443 /* RVMSettingsView.swift */; };
+		A5900843FE5D6D22CD553A3C /* XcodeService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F85758EDEF78052F13BE62C /* XcodeService.swift */; };
 		AC0EE3DED4A882A1FE31659F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ADF9AB1EC38BD6F9598CF7C /* ContentView.swift */; };
 		AFC3811B6EB23F89E757501F /* GvmService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74B362E0A7B39F0E7923E883 /* GvmService.swift */; };
 		B1D19D3867EBF7255D2150EE /* GvmSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF10B8DD45C3AC56C4671D93 /* GvmSettingsView.swift */; };
@@ -74,6 +76,7 @@
 		1ADF9AB1EC38BD6F9598CF7C /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		1F2D1C3168633B6004929B0F /* RustupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RustupService.swift; sourceTree = "<group>"; };
 		23B07DD549E554375ECFE36A /* RVMService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RVMService.swift; sourceTree = "<group>"; };
+		25CE128F2494D66C03E7FA6D /* XcodeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XcodeView.swift; sourceTree = "<group>"; };
 		28ADEBC090C9B610E92B39C6 /* RubyPackagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RubyPackagesView.swift; sourceTree = "<group>"; };
 		31E942F8C2A72168136A16FC /* FlowLayout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FlowLayout.swift; sourceTree = "<group>"; };
 		376535ECB919B3CC49255CE8 /* HostsService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HostsService.swift; sourceTree = "<group>"; };
@@ -86,6 +89,7 @@
 		5FBA739E202DE731122F387C /* TapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TapView.swift; sourceTree = "<group>"; };
 		68C0BE77F649E26860290011 /* PythonPackagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PythonPackagesView.swift; sourceTree = "<group>"; };
 		69D3578526D12C86344585DE /* MongoDbView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoDbView.swift; sourceTree = "<group>"; };
+		6F85758EDEF78052F13BE62C /* XcodeService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = XcodeService.swift; sourceTree = "<group>"; };
 		70407A1BAC51559D0AF761C9 /* InstalledPackagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledPackagesView.swift; sourceTree = "<group>"; };
 		74B362E0A7B39F0E7923E883 /* GvmService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GvmService.swift; sourceTree = "<group>"; };
 		7BDA1E999A65D88FBAA0C772 /* TifaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TifaApp.swift; sourceTree = "<group>"; };
@@ -173,6 +177,7 @@
 				1F2D1C3168633B6004929B0F /* RustupService.swift */,
 				23B07DD549E554375ECFE36A /* RVMService.swift */,
 				91860FD6871E07EFEF9ED164 /* SystemService.swift */,
+				6F85758EDEF78052F13BE62C /* XcodeService.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -245,6 +250,7 @@
 				FE35909EF679ACEBC04FEA83 /* SystemView.swift */,
 				5FBA739E202DE731122F387C /* TapView.swift */,
 				7F81707194882183E3EB16DC /* ToolSettingsView.swift */,
+				25CE128F2494D66C03E7FA6D /* XcodeView.swift */,
 				94C29DB96BBF90BCB8FB8FA2 /* Components */,
 			);
 			path = Views;
@@ -385,6 +391,8 @@
 				B7A2DE17537002AF812D24E7 /* TapView.swift in Sources */,
 				E0E77CA6413DC48DA89DDF0E /* TifaApp.swift in Sources */,
 				19AB3C18A64199CF801FA500 /* ToolSettingsView.swift in Sources */,
+				A5900843FE5D6D22CD553A3C /* XcodeService.swift in Sources */,
+				6551B4CB69E93FC5FCF37F50 /* XcodeView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
