@@ -10,119 +10,27 @@ struct SettingsView: View {
     
     var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: 24) {
-                // Homebrew 状态
-                Section {
-                    HStack {
-                        Image(systemName: viewModel.isHomebrewAvailable ? "checkmark.circle.fill" : "xmark.circle.fill")
-                            .font(.title)
-                            .foregroundColor(viewModel.isHomebrewAvailable ? .green : .red)
-                        
-                        VStack(alignment: .leading) {
-                            Text(viewModel.isHomebrewAvailable ? "Homebrew 已安装" : "Homebrew 未安装")
-                                .font(.headline)
-                            
-                            Text(viewModel.isHomebrewAvailable ? "可以正常使用" : "请先安装 Homebrew")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                        }
-                        
-                        Spacer()
-                    }
-                    .padding()
-                    .background(Color(nsColor: .controlBackgroundColor))
-                    .cornerRadius(10)
-                } header: {
-                    Text("状态")
-                        .font(.headline)
+            VStack(spacing: 20) {
+                // 顶部三列卡片
+                HStack(spacing: 16) {
+                    statusCard
+                    installInfoCard
+                    environmentCard
                 }
                 
-                // 安装信息
-                Section {
-                    VStack(alignment: .leading, spacing: 12) {
-                        InfoRow(title: "安装路径", value: viewModel.brewPrefix)
-                        InfoRow(title: "Cellar 目录", value: viewModel.cellarPath)
-                        InfoRow(title: "可执行文件", value: viewModel.brewBinPath)
-                        InfoRow(title: "Tap 数量", value: "\(viewModel.tapCount)")
-                        InfoRow(title: "已安装包数", value: "\(viewModel.installedCount)")
-                    }
-                    .padding()
-                    .background(Color(nsColor: .controlBackgroundColor))
-                    .cornerRadius(10)
-                } header: {
-                    Text("安装信息")
-                        .font(.headline)
-                }
+                // 维护操作卡片
+                maintenanceCard
                 
-                // 维护操作
-                Section {
-                    VStack(spacing: 12) {
-                        Button(action: { showingUpdateAlert = true }) {
-                            HStack {
-                                Label("更新 Homebrew", systemImage: "arrow.triangle.2.circlepath")
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding()
-                            .background(Color(nsColor: .controlBackgroundColor))
-                            .cornerRadius(10)
-                        }
-                        .buttonStyle(.plain)
-                        
-                        Button(action: { showingCleanupAlert = true }) {
-                            HStack {
-                                Label("清理旧版本", systemImage: "trash")
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding()
-                            .background(Color(nsColor: .controlBackgroundColor))
-                            .cornerRadius(10)
-                        }
-                        .buttonStyle(.plain)
-                        
-                        Button(action: {
-                            Task { await viewModel.runDoctor() }
-                            showingDoctorAlert = true
-                        }) {
-                            HStack {
-                                Label("运行诊断", systemImage: "stethoscope")
-                                Spacer()
-                                Image(systemName: "chevron.right")
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding()
-                            .background(Color(nsColor: .controlBackgroundColor))
-                            .cornerRadius(10)
-                        }
-                        .buttonStyle(.plain)
-                    }
-                } header: {
-                    Text("维护")
-                        .font(.headline)
-                }
-                
-                // 关于
-                Section {
-                    VStack(alignment: .leading, spacing: 8) {
-                        InfoRow(title: "版本", value: "1.0.0")
-                        InfoRow(title: "构建日期", value: "2026-04-03")
-                        InfoRow(title: "兼容系统", value: "macOS 13.0+")
-                    }
-                    .padding()
-                    .background(Color(nsColor: .controlBackgroundColor))
-                    .cornerRadius(10)
-                } header: {
-                    Text("关于")
-                        .font(.headline)
-                }
+                // 关于卡片
+                aboutCard
             }
-            .padding()
+            .padding(20)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .background(Color(nsColor: .textBackgroundColor))
+        .background(Color.gray.opacity(0.08))
+        .task {
+            await viewModel.load()
+        }
         .alert("清理确认", isPresented: $showingCleanupAlert) {
             Button("取消", role: .cancel) {}
             Button("清理", role: .destructive) {
@@ -143,21 +51,216 @@ struct SettingsView: View {
             DoctorResultView(diagnostics: viewModel.diagnostics)
         }
     }
-}
-
-// MARK: - 信息行
-
-private struct InfoRow: View {
-    let title: String
-    let value: String
     
-    var body: some View {
-        HStack {
-            Text(title)
-                .foregroundColor(.secondary)
+    // MARK: - 状态卡片
+    
+    private var statusCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            cardHeader(icon: "checkmark.shield", title: "Homebrew 状态", color: viewModel.isHomebrewAvailable ? .green : .red)
+            
             Spacer()
-            Text(value)
+            
+            HStack(spacing: 10) {
+                Image(systemName: viewModel.isHomebrewAvailable ? "checkmark.circle.fill" : "xmark.circle.fill")
+                    .font(.system(size: 24))
+                    .foregroundColor(viewModel.isHomebrewAvailable ? .green : .red)
+                
+                Text(viewModel.isHomebrewAvailable ? "已安装" : "未安装")
+                    .font(.callout)
+                    .fontWeight(.medium)
+            }
+            
+            Text(viewModel.isHomebrewAvailable ? "可以正常使用所有功能" : "请先安装 Homebrew")
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
+            
+            Spacer()
+            
+            if viewModel.isHomebrewAvailable {
+                HStack {
+                    Spacer()
+                    Text(viewModel.brewVersion)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                        .padding(.horizontal, 8)
+                        .padding(.vertical, 4)
+                        .background(Color.gray.opacity(0.15))
+                        .cornerRadius(6)
+                }
+            }
         }
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: 180)
+        .background(Color(nsColor: .textBackgroundColor))
+        .cornerRadius(12)
+    }
+    
+    // MARK: - 安装信息卡片
+    
+    private var installInfoCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            cardHeader(icon: "info.circle", title: "安装信息", color: .blue)
+            
+            infoRow(label: "安装路径", value: viewModel.brewPrefix, icon: "folder")
+            infoRow(label: "Cellar 目录", value: viewModel.cellarPath, icon: "archivebox")
+            infoRow(label: "可执行文件", value: viewModel.brewBinPath, icon: "terminal")
+            
+            Divider()
+            
+            infoRow(label: "Tap 数量", value: "\(viewModel.tapCount)", icon: "arrow.triangle.branch")
+            infoRow(label: "已安装包", value: "\(viewModel.installedCount)", icon: "shippingbox")
+            infoRow(label: "已安装 Cask", value: "\(viewModel.installedCaskCount)", icon: "macwindow")
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: 180)
+        .background(Color(nsColor: .textBackgroundColor))
+        .cornerRadius(12)
+    }
+    
+    // MARK: - 环境信息卡片
+    
+    private var environmentCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            cardHeader(icon: "gearshape", title: "环境信息", color: .orange)
+            
+            infoRow(label: "Homebrew 前缀", value: viewModel.brewPrefix, icon: "building.2")
+            infoRow(label: "Xcode CLT", value: viewModel.xcodeCLTStatus, icon: "wrench.and.screwdriver")
+            infoRow(label: "系统架构", value: viewModel.architecture, icon: "cpu")
+            infoRow(label: "系统版本", value: viewModel.systemVersion, icon: "desktopcomputer")
+        }
+        .padding(16)
+        .frame(maxWidth: .infinity, minHeight: 180)
+        .background(Color(nsColor: .textBackgroundColor))
+        .cornerRadius(12)
+    }
+    
+    // MARK: - 维护操作卡片
+    
+    private var maintenanceCard: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            cardHeader(icon: "wrench", title: "维护操作", color: .purple)
+            
+            VStack(spacing: 10) {
+                actionRow(
+                    icon: "arrow.triangle.2.circlepath",
+                    title: "更新 Homebrew",
+                    description: "更新 Homebrew 本体和软件包索引",
+                    color: .blue
+                ) {
+                    showingUpdateAlert = true
+                }
+                
+                Divider()
+                
+                actionRow(
+                    icon: "trash",
+                    title: "清理旧版本",
+                    description: "删除所有已卸载包的旧版本缓存",
+                    color: .orange
+                ) {
+                    showingCleanupAlert = true
+                }
+                
+                Divider()
+                
+                actionRow(
+                    icon: "stethoscope",
+                    title: "运行诊断",
+                    description: "检查 Homebrew 配置和潜在问题",
+                    color: .green
+                ) {
+                    Task { await viewModel.runDoctor() }
+                    showingDoctorAlert = true
+                }
+            }
+        }
+        .padding(16)
+        .background(Color(nsColor: .textBackgroundColor))
+        .cornerRadius(12)
+    }
+    
+    // MARK: - 关于卡片
+    
+    private var aboutCard: some View {
+        HStack(spacing: 16) {
+            cardHeader(icon: "questionmark.circle", title: "关于", color: .secondary)
+            
+            Spacer()
+            
+            infoRow(label: "版本", value: "1.0.0", icon: "tag")
+            infoRow(label: "构建", value: "2026-04-03", icon: "calendar")
+            infoRow(label: "系统", value: "macOS 13.0+", icon: "laptopcomputer")
+        }
+        .padding(16)
+        .background(Color(nsColor: .textBackgroundColor))
+        .cornerRadius(12)
+    }
+    
+    // MARK: - 卡片头
+    
+    private func cardHeader(icon: String, title: String, color: Color) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.body)
+                .foregroundColor(color)
+            Text(title)
+                .font(.subheadline)
+                .fontWeight(.semibold)
+        }
+        .padding(.bottom, 2)
+    }
+    
+    // MARK: - 信息行
+    
+    private func infoRow(label: String, value: String, icon: String) -> some View {
+        HStack(spacing: 8) {
+            Image(systemName: icon)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .frame(width: 14, height: 14)
+            
+            Text(label)
+                .font(.caption)
+                .foregroundColor(.secondary)
+                .frame(width: 72, alignment: .leading)
+            
+            Text(value)
+                .font(.caption)
+                .lineLimit(1)
+                .truncationMode(.middle)
+        }
+    }
+    
+    // MARK: - 操作行
+    
+    private func actionRow(icon: String, title: String, description: String, color: Color, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 12) {
+                Image(systemName: icon)
+                    .font(.callout)
+                    .foregroundColor(color)
+                    .frame(width: 28, height: 28)
+                    .background(color.opacity(0.1))
+                    .cornerRadius(6)
+                
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                    Text(description)
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                }
+                
+                Spacer()
+                
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundColor(.secondary)
+            }
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -170,6 +273,9 @@ struct DoctorResultView: View {
     var body: some View {
         VStack(spacing: 16) {
             HStack {
+                Image(systemName: "stethoscope")
+                    .font(.title2)
+                    .foregroundColor(.accentColor)
                 Text("诊断结果")
                     .font(.headline)
                 Spacer()
@@ -202,15 +308,27 @@ class SettingsViewModel: ObservableObject {
     @Published var brewPrefix = "未知"
     @Published var cellarPath = "未知"
     @Published var brewBinPath = "未知"
+    @Published var brewVersion = "未知"
     @Published var tapCount = 0
     @Published var installedCount = 0
+    @Published var installedCaskCount = 0
+    @Published var xcodeCLTStatus = "未知"
+    @Published var architecture = "未知"
+    @Published var systemVersion = "未知"
     
     private let service = HomebrewService.shared
     
     init() {
         isHomebrewAvailable = service.checkHomebrewAvailability()
+    }
+    
+    func load() async {
         if isHomebrewAvailable {
             loadBrewInfo()
+            brewVersion = await loadBrewVersion()
+            installedCaskCount = await loadCaskCount()
+            xcodeCLTStatus = await loadXcodeCLTStatus()
+            loadSystemInfo()
         }
     }
     
@@ -235,6 +353,46 @@ class SettingsViewModel: ObservableObject {
         if let contents = try? FileManager.default.contentsOfDirectory(atPath: tapDir) {
             tapCount = contents.count
         }
+    }
+    
+    private func loadBrewVersion() async -> String {
+        let result = await service.executeBrewCommand(arguments: ["--version"])
+        switch result {
+        case .success(let output):
+            return output.trimmingCharacters(in: .whitespacesAndNewlines)
+        case .failure:
+            return "未知"
+        }
+    }
+    
+    private func loadCaskCount() async -> Int {
+        let casks = await service.fetchInstalledCasks()
+        return casks.count
+    }
+    
+    private func loadXcodeCLTStatus() async -> String {
+        let result = await service.executeBrewCommand(arguments: ["--prefix"])
+        switch result {
+        case .success(let output):
+            let prefix = output.trimmingCharacters(in: .whitespacesAndNewlines)
+            return FileManager.default.fileExists(atPath: prefix) ? "已安装" : "未安装"
+        case .failure:
+            return "未安装"
+        }
+    }
+    
+    private func loadSystemInfo() {
+        var sysinfo = utsname()
+        uname(&sysinfo)
+        let arch = withUnsafePointer(to: &sysinfo.machine) {
+            $0.withMemoryRebound(to: CChar.self, capacity: 1) {
+                String(cString: $0)
+            }
+        }
+        architecture = arch.contains("arm64") ? "Apple Silicon (arm64)" : (arch.contains("x86_64") ? "Intel (x86_64)" : arch)
+        
+        let os = ProcessInfo.processInfo.operatingSystemVersion
+        systemVersion = "macOS \(os.majorVersion).\(os.minorVersion).\(os.patchVersion)"
     }
     
     func cleanup() async {
