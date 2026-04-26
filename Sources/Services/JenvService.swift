@@ -16,6 +16,7 @@ class JenvService: ObservableObject {
 
     @Published var isLoading = false
     @Published var loadingMessage = ""
+    @Published var brokenJdkLinks: [String] = []
 
     /// 当前正在执行的安装进程（用于取消）
     private var currentInstallProcess: Process?
@@ -229,80 +230,132 @@ class JenvService: ObservableObject {
     /// 扫描系统中已安装的 JDK
     func scanSystemJdks() async -> [(name: String, path: String)] {
         var jdks: [(name: String, path: String)] = []
+        var brokenLinks: [String] = []
 
-        // Homebrew 安装的 JDK
-        let homebrewJdkPaths = [
-            "\(brewPrefix)/opt/openjdk",
-            "\(brewPrefix)/opt/openjdk@11",
-            "\(brewPrefix)/opt/openjdk@17",
-            "\(brewPrefix)/opt/openjdk@21",
-            "\(brewPrefix)/opt/openjdk@22",
-            "\(brewPrefix)/opt/openjdk@23",
-            "\(brewPrefix)/Cellar/openjdk"
-        ]
-
-        // 遍历 Homebrew Cellar 下的 JDK
-        let cellarPath = "\(brewPrefix)/Cellar"
-        if let contents = try? FileManager.default.contentsOfDirectory(atPath: cellarPath) {
-            for item in contents where item.hasPrefix("openjdk") {
-                let jdkDir = "\(cellarPath)/\(item)"
-                if let versions = try? FileManager.default.contentsOfDirectory(atPath: jdkDir) {
-                    for ver in versions.sorted().reversed() {
-                        let libexecPath = "\(jdkDir)/\(ver)/libexec/openjdk.jdk/Contents/Home"
-                        let normalPath = "\(jdkDir)/\(ver)/libexec"
-                        if FileManager.default.fileExists(atPath: libexecPath) {
-                            jdks.append((name: "openjdk \(ver)", path: libexecPath))
-                        } else if FileManager.default.fileExists(atPath: "\(normalPath)/bin/java") {
-                            jdks.append((name: "openjdk \(ver)", path: normalPath))
+        // 方法1: 使用 /usr/libexec/java_home -V 扫描
+        let javaHomeResult = await runCommand("/usr/libexec/java_home", arguments: ["-V"])
+        if case .success(let output) = javaHomeResult {
+            // 输出格式: "Java(TM) SE Runtime Environment (build 17.0.2+8-86)" 或 "AdoptOpenJDK (build 11.0.11+9)"
+            for line in output.components(separatedBy: .newlines) {
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                guard trimmed.isEmpty == false else { continue }
+                // 从 java_home -V 输出提取路径（最后一列在引号中或最后一个空格后）
+                if let range = trimmed.range(of: "\"([^\"]+)\"", options: .regularExpression) {
+                    let path = String(trimmed[range]).trimmingCharacters(in: CharacterSet(charactersIn: "\""))
+                    if FileManager.default.fileExists(atPath: path) {
+                        let homePath = path.hasSuffix("/Home") ? path : "\(path)/Contents/Home"
+                        let name = (path as NSString).lastPathComponent.replacingOccurrences(of: ".jdk", with: "")
+                        if FileManager.default.fileExists(atPath: homePath) {
+                            if !jdks.contains(where: { $0.path == homePath }) {
+                                jdks.append((name: name, path: homePath))
+                            }
                         }
                     }
                 }
             }
         }
 
-        // 检查固定路径的 Homebrew JDK
+        // 方法2: 遍历 /Library/Java/JavaVirtualMachines
+        let jvmPaths = [
+            "/Library/Java/JavaVirtualMachines",
+            "\(NSHomeDirectory())/Library/Java/JavaVirtualMachines"
+        ]
+
+        for jvmPath in jvmPaths {
+            if let contents = try? FileManager.default.contentsOfDirectory(atPath: jvmPath) {
+                for item in contents where item.hasSuffix(".jdk") || item.hasSuffix(".jre") {
+                    let fullPath = "\(jvmPath)/\(item)"
+                    let homePath = "\(fullPath)/Contents/Home"
+
+                    if FileManager.default.fileExists(atPath: homePath) {
+                        let name = item.replacingOccurrences(of: ".jdk", with: "").replacingOccurrences(of: ".jre", with: "")
+                        if !jdks.contains(where: { $0.path == homePath }) {
+                            jdks.append((name: name, path: homePath))
+                        }
+                    } else {
+                        // 检查是否是损坏的符号链接
+                        let fm = FileManager.default
+                        if fm.fileExists(atPath: fullPath) == false {
+                            do {
+                                let linkDest = try fm.destinationOfSymbolicLink(atPath: fullPath)
+                                brokenLinks.append("\(item) → \(linkDest)（链接已损坏）")
+                            } catch {
+                                brokenLinks.append("\(item)（无法访问）")
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 方法3: 遍历 Homebrew Cellar 下的 JDK
+        let cellarPath = "\(brewPrefix)/Cellar"
+        if let contents = try? FileManager.default.contentsOfDirectory(atPath: cellarPath) {
+            for item in contents where item.lowercased().contains("openjdk") || item.lowercased().contains("jdk") {
+                let jdkDir = "\(cellarPath)/\(item)"
+                if let versions = try? FileManager.default.contentsOfDirectory(atPath: jdkDir) {
+                    for ver in versions.sorted().reversed() {
+                        let libexecPath = "\(jdkDir)/\(ver)/libexec/openjdk.jdk/Contents/Home"
+                        let normalPath = "\(jdkDir)/\(ver)/libexec"
+                        if FileManager.default.fileExists(atPath: libexecPath) {
+                            if !jdks.contains(where: { $0.path == libexecPath }) {
+                                jdks.append((name: "openjdk \(ver)", path: libexecPath))
+                            }
+                        } else if FileManager.default.fileExists(atPath: "\(normalPath)/bin/java") {
+                            if !jdks.contains(where: { $0.path == normalPath }) {
+                                jdks.append((name: "openjdk \(ver)", path: normalPath))
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        // 方法4: 检查 Homebrew opt 下的 JDK
+        let homebrewJdkPaths = [
+            "\(brewPrefix)/opt/openjdk",
+            "\(brewPrefix)/opt/openjdk@11",
+            "\(brewPrefix)/opt/openjdk@17",
+            "\(brewPrefix)/opt/openjdk@21",
+            "\(brewPrefix)/opt/openjdk@22",
+            "\(brewPrefix)/opt/openjdk@23"
+        ]
         for path in homebrewJdkPaths {
-            let javaHomePath = path.contains("Cellar") ? path : "\(path)/libexec/openjdk.jdk/Contents/Home"
-            if !javaHomePath.contains("Cellar") {
-                // 非 cellar 路径
-                if FileManager.default.fileExists(atPath: "\(path)/libexec/openjdk.jdk/Contents/Home") {
-                    let finalPath = "\(path)/libexec/openjdk.jdk/Contents/Home"
-                    let name = path.hasSuffix("/opt/openjdk") ? "openjdk" : String(path.split(separator: "@").last ?? "openjdk")
-                    if !jdks.contains(where: { $0.path == finalPath }) {
-                        jdks.append((name: "openjdk \(name)", path: finalPath))
-                    }
-                } else if FileManager.default.fileExists(atPath: "\(path)/libexec/bin/java") {
-                    let finalPath = "\(path)/libexec"
-                    let name = path.hasSuffix("/opt/openjdk") ? "openjdk" : String(path.split(separator: "@").last ?? "openjdk")
-                    if !jdks.contains(where: { $0.path == finalPath }) {
-                        jdks.append((name: "openjdk \(name)", path: finalPath))
+            if FileManager.default.fileExists(atPath: "\(path)/libexec/openjdk.jdk/Contents/Home") {
+                let finalPath = "\(path)/libexec/openjdk.jdk/Contents/Home"
+                let name = path.hasSuffix("/opt/openjdk") ? "openjdk" : String(path.split(separator: "@").last ?? "openjdk")
+                if !jdks.contains(where: { $0.path == finalPath }) {
+                    jdks.append((name: "openjdk \(name)", path: finalPath))
+                }
+            } else if FileManager.default.fileExists(atPath: "\(path)/libexec/bin/java") {
+                let finalPath = "\(path)/libexec"
+                let name = path.hasSuffix("/opt/openjdk") ? "openjdk" : String(path.split(separator: "@").last ?? "openjdk")
+                if !jdks.contains(where: { $0.path == finalPath }) {
+                    jdks.append((name: "openjdk \(name)", path: finalPath))
+                }
+            }
+        }
+
+        // 方法5: 使用 which/whereis 查找 java
+        let whereResult = await runCommand("/usr/bin/which", arguments: ["java"])
+        if case .success(let output) = whereResult {
+            let javaPath = output.trimmingCharacters(in: .whitespacesAndNewlines)
+            if javaPath.hasPrefix("/") && !javaPath.hasPrefix("/usr/bin/java") {
+                // 非 macOS 自带 java，可能是自定义安装
+                let javaDir = (javaPath as NSString).deletingLastPathComponent
+                if let resolved = try? FileManager.default.destinationOfSymbolicLink(atPath: javaPath) {
+                    let resolvedDir = (resolved as NSString).deletingLastPathComponent
+                    if !jdks.contains(where: { $0.path == resolvedDir }) {
+                        let name = (resolvedDir as NSString).lastPathComponent
+                        jdks.append((name: name, path: resolvedDir))
                     }
                 }
             }
         }
 
-        // /Library/Java/JavaVirtualMachines 下的 JDK
-        let jvmPath = "/Library/Java/JavaVirtualMachines"
-        if let contents = try? FileManager.default.contentsOfDirectory(atPath: jvmPath) {
-            for item in contents where item.hasSuffix(".jdk") {
-                let homePath = "\(jvmPath)/\(item)/Contents/Home"
-                if FileManager.default.fileExists(atPath: homePath) {
-                    let name = item.replacingOccurrences(of: ".jdk", with: "")
-                    jdks.append((name: name, path: homePath))
-                }
-            }
-        }
-
-        // ~/Library/Java/JavaVirtualMachines 下的 JDK
-        let userJvmPath = "\(NSHomeDirectory())/Library/Java/JavaVirtualMachines"
-        if let contents = try? FileManager.default.contentsOfDirectory(atPath: userJvmPath) {
-            for item in contents where item.hasSuffix(".jdk") {
-                let homePath = "\(userJvmPath)/\(item)/Contents/Home"
-                if FileManager.default.fileExists(atPath: homePath) {
-                    let name = item.replacingOccurrences(of: ".jdk", with: "")
-                    jdks.append((name: name, path: homePath))
-                }
-            }
+        // 保存损坏链接信息
+        if !brokenLinks.isEmpty {
+            self.brokenJdkLinks = brokenLinks
         }
 
         return jdks
@@ -348,6 +401,306 @@ class JenvService: ObservableObject {
             }
         }
         return plugins
+    }
+
+    /// 安装指定版本的 OpenJDK（通过 Homebrew，带实时输出）
+    func installOpenJdk(version: String, onOutput: @escaping @MainActor (String) -> Void) async -> OperationResult {
+        let formula = "openjdk@\(version)"
+        let script = "HOMEBREW_NO_AUTO_UPDATE=1 \(brewPath) install \(formula)"
+
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let process = Process()
+                let stdoutPipe = Pipe()
+                let stderrPipe = Pipe()
+
+                process.executableURL = URL(fileURLWithPath: "/bin/bash")
+                process.arguments = ["-c", script]
+                process.environment = ProcessInfo.processInfo.environment
+                process.standardOutput = stdoutPipe
+                process.standardError = stderrPipe
+
+                Task { @MainActor in
+                    self.currentInstallProcess = process
+                }
+
+                let stdoutHandle = stdoutPipe.fileHandleForReading
+                let stderrHandle = stderrPipe.fileHandleForReading
+
+                stdoutHandle.readabilityHandler = { handle in
+                    let data = handle.availableData
+                    guard let output = String(data: data, encoding: .utf8), !output.isEmpty else { return }
+                    Task { @MainActor in onOutput(output) }
+                }
+                stderrHandle.readabilityHandler = { handle in
+                    let data = handle.availableData
+                    guard let output = String(data: data, encoding: .utf8), !output.isEmpty else { return }
+                    Task { @MainActor in onOutput(output) }
+                }
+
+                do {
+                    try process.run()
+                    let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global())
+                    var timedOut = false
+                    timer.schedule(deadline: .now() + 600)
+                    timer.setEventHandler { timedOut = true; process.terminate() }
+                    timer.resume()
+
+                    process.waitUntilExit()
+                    timer.cancel()
+
+                    Task { @MainActor in
+                        self.currentInstallProcess = nil
+                    }
+
+                    stdoutHandle.readabilityHandler = nil
+                    stderrHandle.readabilityHandler = nil
+
+                    let remainingStdout = String(data: stdoutHandle.readDataToEndOfFile(), encoding: .utf8) ?? ""
+                    let remainingStderr = String(data: stderrHandle.readDataToEndOfFile(), encoding: .utf8) ?? ""
+                    if !remainingStdout.isEmpty { Task { @MainActor in onOutput(remainingStdout) } }
+                    if !remainingStderr.isEmpty { Task { @MainActor in onOutput(remainingStderr) } }
+
+                    if timedOut {
+                        continuation.resume(returning: .failure("安装超时（10 分钟），请检查网络连接后重试"))
+                    } else if process.terminationStatus == 0 {
+                        // 安装成功后，自动创建符号链接到 JVM 目录
+                        Task { @MainActor in
+                            onOutput("\n🔗 正在配置 Java 环境...\n")
+                        }
+                        let linkResult = self.linkOpenJdkToSystem(version: version)
+                        Task { @MainActor in
+                            onOutput(linkResult + "\n")
+                        }
+                        continuation.resume(returning: .success("OpenJDK \(version) 安装成功"))
+                    } else {
+                        let errorMsg = remainingStderr.isEmpty ? "安装失败 (exit code \(process.terminationStatus))" : remainingStderr
+                        continuation.resume(returning: .failure(errorMsg))
+                    }
+                } catch {
+                    stdoutHandle.readabilityHandler = nil
+                    stderrHandle.readabilityHandler = nil
+                    continuation.resume(returning: .failure("无法执行安装命令: \(error.localizedDescription)"))
+                }
+            }
+        }
+    }
+
+    /// 获取 Homebrew 中可用的 OpenJDK 版本列表
+    func getAvailableOpenJdkVersions() -> [String] {
+        return ["8", "11", "17", "21", "22", "23", "24", "25"]
+    }
+
+    /// 将 Homebrew 安装的 OpenJDK 符号链接到用户 JVM 目录（不需要 sudo）
+    private func linkOpenJdkToSystem(version: String) -> String {
+        let brewJdkPath = "\(brewPrefix)/opt/openjdk@\(version)/libexec/openjdk.jdk"
+        let userJvmDir = "\(NSHomeDirectory())/Library/Java/JavaVirtualMachines"
+        let userJvmPath = "\(userJvmDir)/openjdk-\(version).jdk"
+
+        guard FileManager.default.fileExists(atPath: brewJdkPath) else {
+            return "⚠️ 未找到 Homebrew 安装的 OpenJDK: \(brewJdkPath)"
+        }
+
+        // 确保用户 JVM 目录存在
+        do {
+            try FileManager.default.createDirectory(atPath: userJvmDir, withIntermediateDirectories: true)
+        } catch {
+            return "⚠️ 无法创建目录 \(userJvmDir):\n\(error.localizedDescription)"
+        }
+
+        // 如果已存在旧链接，先删除
+        if FileManager.default.fileExists(atPath: userJvmPath) {
+            try? FileManager.default.removeItem(atPath: userJvmPath)
+        }
+
+        do {
+            try FileManager.default.createSymbolicLink(atPath: userJvmPath, withDestinationPath: brewJdkPath)
+            return "✅ 已链接到 \(userJvmPath)"
+        } catch {
+            return "⚠️ 链接失败: \(error.localizedDescription)"
+        }
+    }
+
+    /// 修复所有已安装的 OpenJDK 的系统链接
+    func fixAllOpenJdkLinks(onOutput: @escaping @MainActor (String) -> Void) async {
+        let installedVersions = await listInstalledOpenJdkVersions()
+        if installedVersions.isEmpty {
+            onOutput("没有检测到已安装的 OpenJDK 版本\n")
+            return
+        }
+
+        onOutput("🔧 正在修复 \(installedVersions.count) 个 OpenJDK 版本的系统链接...\n\n")
+
+        var fixedCount = 0
+        var failedCount = 0
+
+        for version in installedVersions {
+            let result = linkOpenJdkToSystem(version: version)
+            onOutput("OpenJDK \(version): \(result)\n")
+            if result.hasPrefix("✅") {
+                fixedCount += 1
+            } else {
+                failedCount += 1
+            }
+        }
+
+        onOutput("\n修复完成: \(fixedCount) 成功, \(failedCount) 失败\n")
+    }
+
+    /// 获取通过 Homebrew 已安装的 OpenJDK 版本列表
+    func listInstalledOpenJdkVersions() async -> [String] {
+        let result = await runCommand(brewPath, arguments: ["list", "--formula", "--quiet"])
+        guard case .success(let output) = result else { return [] }
+
+        let installed = output.components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+
+        let available = getAvailableOpenJdkVersions()
+        return available.filter { version in
+            let formula = "openjdk@\(version)"
+            return installed.contains { $0 == formula || $0.hasPrefix("\(formula) ") }
+        }
+    }
+
+    /// 获取当前激活的默认 OpenJDK 版本
+    func getActiveJdkVersion() async -> String {
+        // 优先从 shell 配置中读取
+        let zshrcPath = NSHomeDirectory() + "/.zshrc"
+        if let content = try? String(contentsOfFile: zshrcPath, encoding: .utf8) {
+            // 查找 # Tifa Java Default: openjdk@XX 标记
+            for line in content.components(separatedBy: .newlines) {
+                let trimmed = line.trimmingCharacters(in: .whitespaces)
+                if trimmed.hasPrefix("# Tifa Java Default: openjdk@"),
+                   let range = trimmed.range(of: "openjdk@") {
+                    let version = String(trimmed[range.upperBound...])
+                        .trimmingCharacters(in: .whitespaces)
+                        .components(separatedBy: .whitespaces).first ?? ""
+                    return version
+                }
+            }
+        }
+
+        // 备选：通过 java -version 检测
+        let result = await runCommand("/usr/bin/java", arguments: ["-version"])
+        if case .success(let output) = result {
+            // 输出如: openjdk version "17.0.12" 或 java version "21.0.2"
+            if let range = output.range(of: #"version\s+"(\d+)"# , options: .regularExpression) {
+                let match = String(output[range])
+                if let verRange = match.range(of: #"\d+"# , options: .regularExpression) {
+                    let major = String(match[verRange])
+                    // 映射到支持的版本号
+                    let available = getAvailableOpenJdkVersions()
+                    if available.contains(major) {
+                        return major
+                    }
+                }
+            }
+        }
+
+        return ""
+    }
+
+    /// 设置默认的 OpenJDK 版本（通过更新 ~/.zshrc）
+    func setActiveJdkVersion(_ version: String) async -> OperationResult {
+        let jdkHome = "\(NSHomeDirectory())/Library/Java/JavaVirtualMachines/openjdk-\(version).jdk/Contents/Home"
+
+        guard FileManager.default.fileExists(atPath: jdkHome) else {
+            return .failure("OpenJDK \(version) 未正确链接，请先点击\"修复链接\"")
+        }
+
+        let zshrcPath = NSHomeDirectory() + "/.zshrc"
+        var content: String
+
+        if let existing = try? String(contentsOfFile: zshrcPath, encoding: .utf8) {
+            content = existing
+        } else {
+            content = ""
+        }
+
+        // 移除旧的 Tifa Java 配置块
+        let pattern = #"\n# === Tifa Java Start ===.*?=== Tifa Java End ===\n"# 
+        if let regex = try? NSRegularExpression(pattern: pattern, options: [.dotMatchesLineSeparators]) {
+            let range = NSRange(content.startIndex..., in: content)
+            content = regex.stringByReplacingMatches(in: content, options: [], range: range, withTemplate: "\n")
+        }
+
+        // 追加新的配置块
+        let configBlock = """
+
+        # === Tifa Java Start ===
+        # Tifa Java Default: openjdk@\(version)
+        export JAVA_HOME="\(jdkHome)"
+        export PATH="$JAVA_HOME/bin:$PATH"
+        # === Tifa Java End ===
+        """
+
+        content += configBlock
+
+        do {
+            try content.write(toFile: zshrcPath, atomically: true, encoding: .utf8)
+            return .success("已将 OpenJDK \(version) 设为默认版本\n\n请重启终端或运行: source ~/.zshrc")
+        } catch {
+            return .failure("写入 ~/.zshrc 失败: \(error.localizedDescription)")
+        }
+    }
+
+    /// 通过 Homebrew 卸载指定版本 OpenJDK
+    func uninstallOpenJdk(version: String, onOutput: @escaping @MainActor (String) -> Void) async -> OperationResult {
+        let formula = "openjdk@\(version)"
+        let script = "\(brewPath) uninstall \(formula)"
+
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let process = Process()
+                let stdoutPipe = Pipe()
+                let stderrPipe = Pipe()
+
+                process.executableURL = URL(fileURLWithPath: "/bin/bash")
+                process.arguments = ["-c", script]
+                process.environment = ProcessInfo.processInfo.environment
+                process.standardOutput = stdoutPipe
+                process.standardError = stderrPipe
+
+                let stdoutHandle = stdoutPipe.fileHandleForReading
+                let stderrHandle = stderrPipe.fileHandleForReading
+
+                stdoutHandle.readabilityHandler = { handle in
+                    let data = handle.availableData
+                    guard let output = String(data: data, encoding: .utf8), !output.isEmpty else { return }
+                    Task { @MainActor in onOutput(output) }
+                }
+                stderrHandle.readabilityHandler = { handle in
+                    let data = handle.availableData
+                    guard let output = String(data: data, encoding: .utf8), !output.isEmpty else { return }
+                    Task { @MainActor in onOutput(output) }
+                }
+
+                do {
+                    try process.run()
+                    process.waitUntilExit()
+
+                    stdoutHandle.readabilityHandler = nil
+                    stderrHandle.readabilityHandler = nil
+
+                    let remainingStdout = String(data: stdoutHandle.readDataToEndOfFile(), encoding: .utf8) ?? ""
+                    let remainingStderr = String(data: stderrHandle.readDataToEndOfFile(), encoding: .utf8) ?? ""
+                    if !remainingStdout.isEmpty { Task { @MainActor in onOutput(remainingStdout) } }
+                    if !remainingStderr.isEmpty { Task { @MainActor in onOutput(remainingStderr) } }
+
+                    if process.terminationStatus == 0 {
+                        continuation.resume(returning: .success("OpenJDK \(version) 卸载成功"))
+                    } else {
+                        let errorMsg = remainingStderr.isEmpty ? "卸载失败" : remainingStderr
+                        continuation.resume(returning: .failure(errorMsg))
+                    }
+                } catch {
+                    stdoutHandle.readabilityHandler = nil
+                    stderrHandle.readabilityHandler = nil
+                    continuation.resume(returning: .failure("无法执行卸载命令: \(error.localizedDescription)"))
+                }
+            }
+        }
     }
 
     // MARK: - Shell 配置
@@ -425,6 +778,34 @@ class JenvService: ObservableObject {
                     }
                 } catch {
                     continuation.resume(returning: .failure("无法执行命令: \(error.localizedDescription)"))
+                }
+            }
+        }
+    }
+
+    /// 运行系统命令并返回结果
+    private func runCommand(_ executable: String, arguments: [String]) async -> OperationResult {
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let process = Process()
+                let pipe = Pipe()
+                process.executableURL = URL(fileURLWithPath: executable)
+                process.arguments = arguments
+                process.standardOutput = pipe
+                process.standardError = pipe
+
+                do {
+                    try process.run()
+                    process.waitUntilExit()
+                    let data = pipe.fileHandleForReading.readDataToEndOfFile()
+                    let output = String(data: data, encoding: .utf8) ?? ""
+                    if process.terminationStatus == 0 {
+                        continuation.resume(returning: .success(output))
+                    } else {
+                        continuation.resume(returning: .failure(output))
+                    }
+                } catch {
+                    continuation.resume(returning: .failure(error.localizedDescription))
                 }
             }
         }

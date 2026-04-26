@@ -88,7 +88,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
             let ordered: [ToolCategory] = {
                 switch group {
                 case .basic: return [.system, .homebrew, .env]
-                case .language: return items
+                case .language: return [.rvm, .pyenv, .nvm, .jenv, .rustup]
                 case .database: return items
                 case .settings: return items
                 }
@@ -212,7 +212,7 @@ enum NVMTab: String, CaseIterable, Identifiable {
 // MARK: - JEnv 子菜单
 
 enum JenvTab: String, CaseIterable, Identifiable {
-    case versions = "Java 版本"
+    case versions = "Java 软件包"
     case settings = "设置"
 
     var id: String { rawValue }
