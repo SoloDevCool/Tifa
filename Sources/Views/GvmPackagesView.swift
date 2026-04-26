@@ -291,31 +291,6 @@ class GvmPackagesViewModel: ObservableObject {
         installError = nil
         canRetryWithCompile = false
 
-        // 源码编译需要 go1.4 引导版本，自动检测并安装
-        if !preferBinary {
-            let hasBootstrap = await service.isBootstrapInstalled()
-            if !hasBootstrap {
-                installOutput += "⚠️ 源码编译需要 go1.4 引导版本，正在自动安装...\n"
-                installOutput += "--- 安装 go1.4 引导版本 ---\n\n"
-                let bootstrapResult = await service.installBootstrapGo(onOutput: { [weak self] output in
-                    Task { @MainActor in
-                        self?.installOutput += output + "\n"
-                    }
-                })
-                switch bootstrapResult {
-                case .success:
-                    installOutput += "\n✅ go1.4 引导版本安装完成\n\n"
-                case .failure(let error):
-                    installOutput += "\n❌ go1.4 引导版本安装失败: \(error)\n"
-                    installOutput += "源码编译需要 go1.4，请先确保系统已安装 Xcode Command Line Tools。\n"
-                    installError = "引导版本安装失败: \(error)"
-                    isInstalling = false
-                    isOperating = false
-                    return
-                }
-            }
-        }
-
         let methodLabel = preferBinary ? "" : "（源码编译）"
         installOutput += "📦 开始安装 Go \(version)\(methodLabel)...\n\n"
 
@@ -356,9 +331,15 @@ class GvmPackagesViewModel: ObservableObject {
         case .failure(let error):
             installOutput += "\n❌ 安装失败: \(error)"
             installError = error
-            // 二进制下载失败时，允许重试用源码编译
-            if preferBinary && (installOutput.contains("Failed to download binary") || installOutput.contains("no binary") || installOutput.contains("404")) {
-                canRetryWithCompile = true
+            // 二进制下载失败时，仅在版本可源码编译时才允许重试
+            let needsGo14Bootstrap = GvmService.requiresGo14Bootstrap(version)
+            if preferBinary && (installOutput.contains("Failed to download binary") || installOutput.contains("no binary") || installOutput.contains("404") || installOutput.contains("Failed to download binary go")) {
+                if needsGo14Bootstrap {
+                    installOutput += "\n\n💡 Go \(version) 没有 ARM64 预编译包，且需要 go1.4 引导编译器（ARM64 Mac 不支持），无法安装。建议安装 Go 1.21+。"
+                } else {
+                    canRetryWithCompile = true
+                    installOutput += "\n\n💡 该版本没有预编译二进制包，可以尝试「从源码编译」。"
+                }
             }
         }
 

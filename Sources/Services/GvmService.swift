@@ -51,8 +51,27 @@ class GvmService: ObservableObject {
             env["PATH"] = gvmPaths
         }
         env["GVM_ROOT"] = gvmDir
-        env["GOROOT_BOOTSTRAP"] = "\(gvmDir)/gos/go1.4"
+        // 动态查找已安装的 Go 作为引导编译器，优先使用最新版本
+        env["GOROOT_BOOTSTRAP"] = Self.findGoBootstrap(gvmDir: gvmDir)
         return env
+    }
+
+    /// 在 gvm 已安装的 Go 版本中，查找一个可用的引导编译器
+    /// 返回包含 bin/go 的最高版本 GOROOT 路径
+    private static func findGoBootstrap(gvmDir: String) -> String {
+        let fm = FileManager.default
+        let gosDir = "\(gvmDir)/gos"
+        guard let entries = try? fm.contentsOfDirectory(atPath: gosDir) else {
+            return "\(gvmDir)/gos/go1.4" // 回退默认值
+        }
+        // 过滤出有 bin/go 的版本，按版本号降序排列，取最新的
+        let validVersions = entries
+            .filter { $0.hasPrefix("go") && fm.fileExists(atPath: "\(gosDir)/\($0)/bin/go") }
+            .sorted { $0 > $1 }
+        if let latest = validVersions.first {
+            return "\(gosDir)/\(latest)"
+        }
+        return "\(gvmDir)/gos/go1.4"
     }
 
     // MARK: - 安装/卸载 gvm
@@ -298,96 +317,10 @@ class GvmService: ObservableObject {
     }
 
     /// 安装 go1.4 引导版本
-    /// 绕过 GVM 安装脚本，手动编译以兼容现代 macOS（新版 Clang 的 -Werror 会导致编译失败）
+    /// 使用预编译二进制安装（go1.4 太旧，无法在现代 macOS 上从源码编译）
     func installBootstrapGo(onOutput: @escaping @MainActor (String) -> Void) async -> OperationResult {
-        // 构建干净的编译环境（不依赖 gvm 脚本）
-        var env = ProcessInfo.processInfo.environment
-        env["HOME"] = NSHomeDirectory()
-        // 确保 PATH 包含基本工具
-        env["PATH"] = "/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin"
-        // Xcode 工具链路径
-        let xcodePath = "/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin"
-        env["PATH"] = "\(xcodePath):\(env["PATH"] ?? "")"
-        env["CC"] = "clang"
-
-        let home = NSHomeDirectory()
-        let script = """
-        set -e
-
-        GVM_ROOT="\(home)/.gvm"
-        GO_INSTALL_ROOT="$GVM_ROOT/gos/go1.4"
-        GO_ARCHIVE="$GVM_ROOT/archive/go"
-
-        # 检查是否已安装
-        if [ -f "$GO_INSTALL_ROOT/bin/go" ]; then
-            echo "✅ go1.4 引导版本已存在"
-            exit 0
-        fi
-
-        mkdir -p "$GVM_ROOT/archive" "$GVM_ROOT/logs"
-
-        # 确保源码仓库存在
-        if [ ! -d "$GO_ARCHIVE/.git" ]; then
-            echo "📦 正在克隆 Go 源码仓库（首次需要几分钟）..."
-            git clone https://github.com/golang/go "$GO_ARCHIVE"
-        else
-            echo "📦 更新 Go 源码仓库..."
-            cd "$GO_ARCHIVE" && git fetch origin go1.4
-        fi
-
-        # 准备 go1.4 源码
-        echo "📋 正在准备 go1.4 源码..."
-        rm -rf "$GO_INSTALL_ROOT"
-        git clone -b go1.4 "$GO_ARCHIVE" "$GO_INSTALL_ROOT"
-
-        # 应用兼容性补丁：移除 -Werror（现代 Clang 的警告会导致编译失败）
-        echo "🔧 正在应用 macOS 兼容性补丁..."
-        if [ -f "$GO_INSTALL_ROOT/src/make.bash" ]; then
-            sed -i '' 's/-Werror//g' "$GO_INSTALL_ROOT/src/make.bash"
-            echo "   已移除 make.bash 中的 -Werror 标志"
-        fi
-
-        # 编译 go1.4
-        echo "🔨 正在编译 go1.4 引导版本（需要几分钟）..."
-        export GOROOT="$GO_INSTALL_ROOT"
-        export GOBIN="$GO_INSTALL_ROOT/bin"
-        export GOROOT_BOOTSTRAP="$GO_INSTALL_ROOT"
-        export PATH="$GOBIN:$PATH"
-        unset GOARCH GOOS GOPATH GOBIN
-
-        cd "$GO_INSTALL_ROOT/src"
-        chmod +x make.bash
-        ./make.bash > "$GVM_ROOT/logs/go-go1.4-compile.log" 2>&1
-
-        if [ $? -ne 0 ]; then
-            echo ""
-            echo "❌ 编译失败，查看日志："
-            tail -20 "$GVM_ROOT/logs/go-go1.4-compile.log"
-            rm -rf "$GO_INSTALL_ROOT"
-            exit 1
-        fi
-
-        echo ""
-        echo "✅ go1.4 编译成功"
-
-        # 创建 GVM 环境配置文件（让 gvm 识别此版本）
-        mkdir -p "$GVM_ROOT/environments"
-        ENV_FILE="$GVM_ROOT/environments/go1.4"
-        echo 'export GVM_ROOT; GVM_ROOT="'$GVM_ROOT'"' > "$ENV_FILE"
-        echo 'export gvm_go_name; gvm_go_name="go1.4"' >> "$ENV_FILE"
-        echo 'export gvm_pkgset_name; gvm_pkgset_name="global"' >> "$ENV_FILE"
-        echo 'export GOROOT; GOROOT="'$GVM_ROOT'/gos/go1.4"' >> "$ENV_FILE"
-        echo 'export GOPATH; GOPATH="'$GVM_ROOT'/pkgsets/go1.4/global"' >> "$ENV_FILE"
-        echo 'export GVM_OVERLAY_PREFIX; GVM_OVERLAY_PREFIX="'$GVM_ROOT'/pkgsets/go1.4/global/overlay"' >> "$ENV_FILE"
-        echo 'export PATH; PATH="'$GVM_ROOT'/pkgsets/go1.4/global/bin:'$GVM_ROOT'/gos/go1.4/bin:$GVM_OVERLAY_PREFIX/bin:'$GVM_ROOT'/bin:$PATH"' >> "$ENV_FILE"
-        echo 'export LD_LIBRARY_PATH; LD_LIBRARY_PATH="${GVM_OVERLAY_PREFIX}/lib${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"' >> "$ENV_FILE"
-        echo 'export DYLD_LIBRARY_PATH; DYLD_LIBRARY_PATH="${GVM_OVERLAY_PREFIX}/lib${DYLD_LIBRARY_PATH:+:$DYLD_LIBRARY_PATH}"' >> "$ENV_FILE"
-        echo 'export PKG_CONFIG_PATH; PKG_CONFIG_PATH="$GVM_OVERLAY_PREFIX/lib/pkgconfig:$PKG_CONFIG_PATH"' >> "$ENV_FILE"
-
-        # 创建全局 pkgset
-        mkdir -p "$GVM_ROOT/pkgsets/go1.4/global"
-        echo "✅ go1.4 引导版本安装完成"
-        """
+        let script = "source \(gvmDir)/scripts/gvm && gvm install go1.4 -B"
+        let label = "📦 正在下载 go1.4 引导版本（预编译二进制）...\n"
 
         return await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async {
@@ -396,22 +329,27 @@ class GvmService: ObservableObject {
                 let stderrPipe = Pipe()
 
                 process.executableURL = URL(fileURLWithPath: "/bin/bash")
-                process.arguments = ["-c", script]
-                process.environment = env
+                process.arguments = ["-l", "-c", script]
+                process.environment = self.gvmEnvironment
                 process.standardOutput = stdoutPipe
                 process.standardError = stderrPipe
 
                 let stdoutHandle = stdoutPipe.fileHandleForReading
                 let stderrHandle = stderrPipe.fileHandleForReading
 
+                var capturedOutput = label
+                Task { @MainActor in onOutput(label) }
+
                 stdoutHandle.readabilityHandler = { handle in
                     let data = handle.availableData
                     guard let output = String(data: data, encoding: .utf8), !output.isEmpty else { return }
+                    capturedOutput += output
                     Task { @MainActor in onOutput(output) }
                 }
                 stderrHandle.readabilityHandler = { handle in
                     let data = handle.availableData
                     guard let output = String(data: data, encoding: .utf8), !output.isEmpty else { return }
+                    capturedOutput += output
                     Task { @MainActor in onOutput(output) }
                 }
 
@@ -419,7 +357,7 @@ class GvmService: ObservableObject {
                     try process.run()
                     let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global())
                     var timedOut = false
-                    timer.schedule(deadline: .now() + 900) // 15 分钟超时（go1.4 编译较慢）
+                    timer.schedule(deadline: .now() + 300) // 5 分钟超时
                     timer.setEventHandler { timedOut = true; process.terminate() }
                     timer.resume()
 
@@ -431,11 +369,11 @@ class GvmService: ObservableObject {
 
                     let remainingStdout = String(data: stdoutHandle.readDataToEndOfFile(), encoding: .utf8) ?? ""
                     let remainingStderr = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
-                    if !remainingStdout.isEmpty { Task { @MainActor in onOutput(remainingStdout) } }
-                    if !remainingStderr.isEmpty { Task { @MainActor in onOutput(remainingStderr) } }
+                    if !remainingStdout.isEmpty { capturedOutput += remainingStdout; Task { @MainActor in onOutput(remainingStdout) } }
+                    if !remainingStderr.isEmpty { capturedOutput += remainingStderr; Task { @MainActor in onOutput(remainingStderr) } }
 
                     if timedOut {
-                        continuation.resume(returning: .failure("go1.4 引导版本编译超时（15 分钟），请重试"))
+                        continuation.resume(returning: .failure("go1.4 引导版本下载超时，请检查网络后重试"))
                     } else if process.terminationStatus == 0 {
                         continuation.resume(returning: .success("go1.4 引导版本安装成功"))
                     } else {
@@ -451,11 +389,25 @@ class GvmService: ObservableObject {
         }
     }
 
+    /// 检测版本是否需要 go1.4 作为引导编译器
+    /// Go 1.5 ~ 1.19 需要至少 Go 1.4 作为 GOROOT_BOOTSTRAP
+    /// 在 ARM64 macOS 上无法安装 go1.4，因此这些版本无法源码编译
+    static func requiresGo14Bootstrap(_ version: String) -> Bool {
+        guard let major = version.dropFirst(2).split(separator: ".").first,
+              let majorNum = Int(major) else { return false }
+        return majorNum <= 19
+    }
+
     /// 安装指定版本的 Go
     /// - Parameters:
     ///   - version: Go 版本号
-    ///   - preferBinary: 是否优先使用二进制包（默认 true），失败后可设为 false 从源码编译
+    ///   - preferBinary: 是否优先使用二进制包（默认 true），失败后可从源码编译
     func installGoVersion(_ version: String, preferBinary: Bool = true, onOutput: @escaping @MainActor (String) -> Void) async -> OperationResult {
+        // 源码编译模式下，检测是否需要 go1.4 引导（ARM64 上不可用）
+        if !preferBinary && Self.requiresGo14Bootstrap(version) && Self.findGoBootstrap(gvmDir: gvmDir).hasSuffix("go1.4") {
+            return .failure("Go \(version) 需要 go1.4 引导编译器，但 ARM64 Mac 不支持安装 go1.4。\n建议安装 Go 1.21+ 版本（提供 ARM64 预编译包）。")
+        }
+
         let useBinary = preferBinary && !version.hasPrefix("go1.4")
         let binaryFlag = useBinary ? "--prefer-binary" : ""
         let script = "source \(gvmDir)/scripts/gvm && gvm install \(version) \(binaryFlag)".trimmingCharacters(in: .whitespaces)
