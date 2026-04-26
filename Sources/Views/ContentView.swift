@@ -46,6 +46,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
     case nvm = "NVM"
     case rustup = "rustup"
     case jenv = "JEnv"
+    case gvm = "GVM"
     case system = "系统监控"
     case env = "环境变量"
     case toolSettings = "工具设置"
@@ -64,6 +65,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
         case .nvm: return "chevron.left.forwardslash.chevron.right"
         case .rustup: return "wrench.and.screwdriver.fill"
         case .jenv: return "leaf.arrow.triangle.circlepath"
+        case .gvm: return "chevron.left.forwardslash.chevron.right"
         case .system: return "chart.bar"
         case .env: return "gearshape.2"
         case .toolSettings: return "gearshape"
@@ -73,7 +75,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
     var group: CategoryGroup {
         switch self {
         case .system, .homebrew, .env: return .basic
-        case .rvm, .pyenv, .nvm, .rustup, .jenv: return .language
+        case .rvm, .pyenv, .nvm, .jenv, .gvm, .rustup: return .language
         case .mysql, .postgres, .redis, .mongodb: return .database
         case .toolSettings: return .settings
         }
@@ -88,7 +90,7 @@ enum ToolCategory: String, CaseIterable, Identifiable {
             let ordered: [ToolCategory] = {
                 switch group {
                 case .basic: return [.system, .homebrew, .env]
-                case .language: return [.rvm, .pyenv, .nvm, .jenv, .rustup]
+                case .language: return [.rvm, .pyenv, .nvm, .jenv, .gvm, .rustup]
                 case .database: return items
                 case .settings: return items
                 }
@@ -241,6 +243,22 @@ enum RustupTab: String, CaseIterable, Identifiable {
     }
 }
 
+// MARK: - GVM 子菜单
+
+enum GvmTab: String, CaseIterable, Identifiable {
+    case packages = "Go 软件包"
+    case settings = "设置"
+
+    var id: String { rawValue }
+
+    var icon: String {
+        switch self {
+        case .packages: return "shippingbox"
+        case .settings: return "gear"
+        }
+    }
+}
+
 // MARK: - MongoDB 子菜单
 
 enum MongoDbTab: String, CaseIterable, Identifiable {
@@ -306,6 +324,7 @@ struct ContentView: View {
     @State private var selectedNVMTab: NVMTab = .packages
     @State private var selectedRustupTab: RustupTab = .packages
     @State private var selectedJenvTab: JenvTab = .versions
+    @State private var selectedGvmTab: GvmTab = .packages
     @State private var selectedSystemTab: SystemTab = .metrics
     
     var body: some View {
@@ -328,8 +347,8 @@ struct ContentView: View {
         }
         .frame(minWidth: 1000, minHeight: 600)
         .overlay {
-            if homebrewService.isLoading || RVMService.shared.isLoading || MySQLService.shared.isLoading || PyenvService.shared.isLoading || PostgresService.shared.isLoading || RedisService.shared.isLoading || NvmService.shared.isLoading || MongoDbService.shared.isLoading || RustupService.shared.isLoading || JenvService.shared.isLoading {
-                LoadingOverlay(message: homebrewService.isLoading ? homebrewService.loadingMessage : (RVMService.shared.isLoading ? RVMService.shared.loadingMessage : (MySQLService.shared.isLoading ? MySQLService.shared.loadingMessage : (PyenvService.shared.isLoading ? PyenvService.shared.loadingMessage : (PostgresService.shared.isLoading ? PostgresService.shared.loadingMessage : (RedisService.shared.isLoading ? RedisService.shared.loadingMessage : (NvmService.shared.isLoading ? NvmService.shared.loadingMessage : (MongoDbService.shared.isLoading ? MongoDbService.shared.loadingMessage : (RustupService.shared.isLoading ? RustupService.shared.loadingMessage : JenvService.shared.loadingMessage)))))))))
+            if homebrewService.isLoading || RVMService.shared.isLoading || MySQLService.shared.isLoading || PyenvService.shared.isLoading || PostgresService.shared.isLoading || RedisService.shared.isLoading || NvmService.shared.isLoading || MongoDbService.shared.isLoading || RustupService.shared.isLoading || JenvService.shared.isLoading || GvmService.shared.isLoading {
+                LoadingOverlay(message: homebrewService.isLoading ? homebrewService.loadingMessage : (RVMService.shared.isLoading ? RVMService.shared.loadingMessage : (MySQLService.shared.isLoading ? MySQLService.shared.loadingMessage : (PyenvService.shared.isLoading ? PyenvService.shared.loadingMessage : (PostgresService.shared.isLoading ? PostgresService.shared.loadingMessage : (RedisService.shared.isLoading ? RedisService.shared.loadingMessage : (NvmService.shared.isLoading ? NvmService.shared.loadingMessage : (MongoDbService.shared.isLoading ? MongoDbService.shared.loadingMessage : (RustupService.shared.isLoading ? RustupService.shared.loadingMessage : (JenvService.shared.isLoading ? JenvService.shared.loadingMessage : GvmService.shared.loadingMessage))))))))))
             }
         }
         .alert("错误", isPresented: .constant(homebrewService.lastError != nil)) {
@@ -469,6 +488,14 @@ struct ContentView: View {
                     }
                 }
                 .listStyle(.sidebar)
+            } else if selectedCategory == .gvm {
+                List(selection: $selectedGvmTab) {
+                    ForEach(GvmTab.allCases) { tab in
+                        Label(tab.rawValue, systemImage: tab.icon)
+                            .tag(tab)
+                    }
+                }
+                .listStyle(.sidebar)
             } else if selectedCategory == .system {
                 List(selection: $selectedSystemTab) {
                     ForEach(SystemTab.allCases) { tab in
@@ -591,6 +618,13 @@ struct ContentView: View {
                 JenvPackagesView()
             case .settings:
                 JenvSettingsView()
+            }
+        case .gvm:
+            switch selectedGvmTab {
+            case .packages:
+                GvmPackagesView()
+            case .settings:
+                GvmSettingsView()
             }
         case .env:
             EnvView()

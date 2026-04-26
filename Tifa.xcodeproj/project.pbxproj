@@ -35,6 +35,7 @@
 		7629F78C7D629BDAD2756C66 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = FF00EC3F6703C0062270D358 /* SettingsView.swift */; };
 		7C3F351457E678CEB9A317BF /* RustupService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F2D1C3168633B6004929B0F /* RustupService.swift */; };
 		801365D71FFD7E4258AE39B0 /* RustupSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 09C6A6525E7ACBF263651F2D /* RustupSettingsView.swift */; };
+		878EAFF23C396C97F22A4486 /* GvmPackagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D0C840A9F5FFCBB0B0537C81 /* GvmPackagesView.swift */; };
 		938BFB992210F8BB932322F8 /* RubyPackagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 28ADEBC090C9B610E92B39C6 /* RubyPackagesView.swift */; };
 		9C254FA7574FE004548A98FB /* MongoDbView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69D3578526D12C86344585DE /* MongoDbView.swift */; };
 		9E40C3F1501191A91C6A0878 /* RustupPackagesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AE9E45F8D247B1D152C02745 /* RustupPackagesView.swift */; };
@@ -42,6 +43,8 @@
 		A29A00FEAD5FEB2668FE26BC /* MySQLVersionsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8397BC603A3D530A63469144 /* MySQLVersionsView.swift */; };
 		A37DF9FD186CD331CA063953 /* RVMSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F2EE602DCA60AB48E4F9443 /* RVMSettingsView.swift */; };
 		AC0EE3DED4A882A1FE31659F /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1ADF9AB1EC38BD6F9598CF7C /* ContentView.swift */; };
+		AFC3811B6EB23F89E757501F /* GvmService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 74B362E0A7B39F0E7923E883 /* GvmService.swift */; };
+		B1D19D3867EBF7255D2150EE /* GvmSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = DF10B8DD45C3AC56C4671D93 /* GvmSettingsView.swift */; };
 		B269D8F628B066B9F9A3F610 /* EnvService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 427BA2D1A7E8751877B8B90C /* EnvService.swift */; };
 		B7A2DE17537002AF812D24E7 /* TapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5FBA739E202DE731122F387C /* TapView.swift */; };
 		BB9F33A6F9DC6E45C7EBDCE0 /* PortMonitorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F73B25EFD6F6FE9E861DB02E /* PortMonitorView.swift */; };
@@ -81,6 +84,7 @@
 		68C0BE77F649E26860290011 /* PythonPackagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PythonPackagesView.swift; sourceTree = "<group>"; };
 		69D3578526D12C86344585DE /* MongoDbView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoDbView.swift; sourceTree = "<group>"; };
 		70407A1BAC51559D0AF761C9 /* InstalledPackagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InstalledPackagesView.swift; sourceTree = "<group>"; };
+		74B362E0A7B39F0E7923E883 /* GvmService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GvmService.swift; sourceTree = "<group>"; };
 		7BDA1E999A65D88FBAA0C772 /* TifaApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TifaApp.swift; sourceTree = "<group>"; };
 		7E5B06FBEBBB338FADA49E70 /* MongoDbSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MongoDbSettingsView.swift; sourceTree = "<group>"; };
 		7F2EE602DCA60AB48E4F9443 /* RVMSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RVMSettingsView.swift; sourceTree = "<group>"; };
@@ -104,8 +108,10 @@
 		BFC604DCDDA08AF27B49D7E6 /* Tifa.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Tifa.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		C290D840BFF9361202558060 /* NvmSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NvmSettingsView.swift; sourceTree = "<group>"; };
 		D05321805876E4CB2A21B90D /* MySQLService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLService.swift; sourceTree = "<group>"; };
+		D0C840A9F5FFCBB0B0537C81 /* GvmPackagesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GvmPackagesView.swift; sourceTree = "<group>"; };
 		D65CA5BA61EB86D4D3A127E8 /* RedisService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RedisService.swift; sourceTree = "<group>"; };
 		DC5E7BC9F3C6F3A8A8581857 /* MySQLView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLView.swift; sourceTree = "<group>"; };
+		DF10B8DD45C3AC56C4671D93 /* GvmSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GvmSettingsView.swift; sourceTree = "<group>"; };
 		E8BDE346134D1CD2F8AA05EC /* MySQLConfigModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MySQLConfigModel.swift; sourceTree = "<group>"; };
 		E8C1184279B38E238CD7025E /* EnvView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnvView.swift; sourceTree = "<group>"; };
 		EDAB995097AEC0FF312249F9 /* EmptyStateView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmptyStateView.swift; sourceTree = "<group>"; };
@@ -150,6 +156,7 @@
 			isa = PBXGroup;
 			children = (
 				427BA2D1A7E8751877B8B90C /* EnvService.swift */,
+				74B362E0A7B39F0E7923E883 /* GvmService.swift */,
 				9A35F7D90F44C6458A40413D /* HomebrewService.swift */,
 				8729A8087E19C6FE3E575FC3 /* JenvService.swift */,
 				FEABF8AC4A428A93B58BF212 /* MongoDbService.swift */,
@@ -200,6 +207,8 @@
 			children = (
 				1ADF9AB1EC38BD6F9598CF7C /* ContentView.swift */,
 				E8C1184279B38E238CD7025E /* EnvView.swift */,
+				D0C840A9F5FFCBB0B0537C81 /* GvmPackagesView.swift */,
+				DF10B8DD45C3AC56C4671D93 /* GvmSettingsView.swift */,
 				70407A1BAC51559D0AF761C9 /* InstalledPackagesView.swift */,
 				8846857D68B9FB959AC96438 /* JenvPackagesView.swift */,
 				41A4E3E464F238605F34C199 /* JenvSettingsView.swift */,
@@ -321,6 +330,9 @@
 				B269D8F628B066B9F9A3F610 /* EnvService.swift in Sources */,
 				14409D5F0A27098E3599F267 /* EnvView.swift in Sources */,
 				FA367B2E7D617BEB77BF8521 /* FlowLayout.swift in Sources */,
+				878EAFF23C396C97F22A4486 /* GvmPackagesView.swift in Sources */,
+				AFC3811B6EB23F89E757501F /* GvmService.swift in Sources */,
+				B1D19D3867EBF7255D2150EE /* GvmSettingsView.swift in Sources */,
 				386AA637A58A6E5A391F0C42 /* HomebrewService.swift in Sources */,
 				447A8BC33DFDBE2A2CBF00F6 /* InstalledPackagesView.swift in Sources */,
 				2E975A44F28A4471C7C7A318 /* JenvPackagesView.swift in Sources */,
