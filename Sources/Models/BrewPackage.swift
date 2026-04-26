@@ -35,6 +35,18 @@ struct SearchResult: Identifiable {
     let name: String
     let description: String
     let tap: String
+    let isCask: Bool
+}
+
+/// 搜索结果模型（兼容旧调用）
+extension SearchResult {
+    init(id: String, name: String, description: String, tap: String) {
+        self.id = id
+        self.name = name
+        self.description = description
+        self.tap = tap
+        self.isCask = false
+    }
 }
 
 /// Homebrew 命令类型

@@ -170,6 +170,93 @@ class HomebrewService: ObservableObject {
         return result
     }
     
+    // MARK: - Cask 管理
+    
+    func fetchInstalledCasks() async -> [BrewPackage] {
+        updateLoadingState(message: "正在获取已安装的 GUI 应用...")
+        
+        let result = await executeBrewCommand(arguments: ["list", "--cask", "--versions"])
+        
+        isLoading = false
+        
+        switch result {
+        case .success(let output):
+            return parseInstalledPackages(output: output)
+        case .failure(let error):
+            lastError = error
+            return []
+        }
+    }
+    
+    func fetchOutdatedCasks() async -> [BrewPackage] {
+        updateLoadingState(message: "检查过时的 GUI 应用...")
+        
+        let result = await executeBrewCommand(arguments: ["outdated", "--cask"])
+        
+        isLoading = false
+        
+        switch result {
+        case .success(let output):
+            return parseOutdatedPackages(output: output)
+        case .failure(let error):
+            lastError = error
+            return []
+        }
+    }
+    
+    func searchCasks(query: String) async -> [SearchResult] {
+        guard !query.isEmpty else { return [] }
+        
+        updateLoadingState(message: "搜索 GUI 应用...")
+        
+        let result = await executeBrewCommand(arguments: ["search", "--cask", query])
+        
+        isLoading = false
+        
+        switch result {
+        case .success(let output):
+            return parseCaskSearchResults(output: output, query: query)
+        case .failure(let error):
+            lastError = error
+            return []
+        }
+    }
+    
+    func installCask(_ name: String) async -> OperationResult {
+        updateLoadingState(message: "正在安装 \(name)...")
+        let result = await executeBrewCommandWithProgress(arguments: ["install", "--cask", name])
+        return result
+    }
+    
+    func uninstallCask(_ name: String) async -> OperationResult {
+        updateLoadingState(message: "正在卸载 \(name)...")
+        let result = await executeBrewCommandWithProgress(arguments: ["uninstall", "--cask", "--force", name])
+        return result
+    }
+    
+    func upgradeCask(_ name: String) async -> OperationResult {
+        updateLoadingState(message: "正在升级 \(name)...")
+        let result = await executeBrewCommandWithProgress(arguments: ["upgrade", "--cask", name])
+        return result
+    }
+    
+    func upgradeAllCasks() async -> OperationResult {
+        updateLoadingState(message: "正在升级所有 GUI 应用...")
+        let result = await executeBrewCommandWithProgress(arguments: ["upgrade", "--cask"])
+        return result
+    }
+    
+    func getCaskInfo(name: String) async -> BrewPackage? {
+        let result = await executeBrewCommand(arguments: ["info", "--cask", name])
+        
+        switch result {
+        case .success(let output):
+            return parseCaskInfo(output: output, name: name)
+        case .failure:
+            return nil
+        }
+    }
+    
     // MARK: - 诊断
     
     func checkHomebrewAvailability() -> Bool {
@@ -424,11 +511,11 @@ class HomebrewService: ObservableObject {
     private func parseInstalledPackages(output: String) -> [BrewPackage] {
         let lines = output.components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
+            .filter { !$0.isEmpty && !$0.hasPrefix("==>") }
         
-        return lines.map { line in
+        return lines.compactMap { line in
             let parts = line.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
-            let name = parts.first ?? line
+            guard let name = parts.first, !name.hasPrefix("."), !name.hasSuffix(".rb") else { return nil }
             let versions = parts.dropFirst().joined(separator: " ")
             return BrewPackage(name: name, version: versions)
         }
@@ -437,11 +524,11 @@ class HomebrewService: ObservableObject {
     private func parseOutdatedPackages(output: String) -> [BrewPackage] {
         let lines = output.components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
+            .filter { !$0.isEmpty && !$0.hasPrefix("==>") }
         
-        return lines.map { line in
+        return lines.compactMap { line in
             let parts = line.components(separatedBy: .whitespaces).filter { !$0.isEmpty }
-            let name = parts.first ?? line
+            guard let name = parts.first, !name.hasPrefix("."), !name.hasSuffix(".rb") else { return nil }
             let currentVersion = parts.count > 1 ? parts[1] : ""
             return BrewPackage(name: name, version: currentVersion)
         }
@@ -450,14 +537,106 @@ class HomebrewService: ObservableObject {
     private func parseSearchResults(output: String, query: String) -> [SearchResult] {
         let lines = output.components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
-            .filter { !$0.isEmpty }
+            .filter { !$0.isEmpty && !$0.hasPrefix("==>") }
         
-        return lines.map { line in
+        return lines.compactMap { line -> SearchResult? in
             let parts = line.components(separatedBy: "/")
-            let tap = parts.count > 1 ? parts[0] : "homebrew"
-            let name = parts.count > 1 ? parts[1] : line
-            return SearchResult(id: name, name: name, description: "", tap: tap)
+            let tap: String
+            let rawName: String
+            if parts.count > 2 {
+                tap = parts.dropLast().joined(separator: "/")
+                rawName = parts.last ?? line
+            } else if parts.count > 1 {
+                tap = parts[0]
+                rawName = parts[1]
+            } else {
+                tap = "homebrew"
+                rawName = line
+            }
+            // 过滤 .rb 文件引用和以 . 开头的名称
+            let name = rawName.hasSuffix(".rb") ? String(rawName.dropLast(3)) : rawName
+            guard !name.isEmpty, !name.hasPrefix(".") else { return nil }
+            return SearchResult(id: name, name: name, description: "", tap: tap, isCask: false)
         }
+    }
+    
+    private func parseCaskSearchResults(output: String, query: String) -> [SearchResult] {
+        let lines = output.components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty && !$0.hasPrefix("==>") }
+        
+        return lines.compactMap { line -> SearchResult? in
+            let parts = line.components(separatedBy: "/")
+            let tap: String
+            let rawName: String
+            if parts.count > 2 {
+                tap = parts.dropLast().joined(separator: "/")
+                rawName = parts.last ?? line
+            } else if parts.count > 1 {
+                tap = parts[0]
+                rawName = parts[1]
+            } else {
+                tap = "homebrew/cask"
+                rawName = line
+            }
+            let name = rawName.hasSuffix(".rb") ? String(rawName.dropLast(3)) : rawName
+            guard !name.isEmpty, !name.hasPrefix(".") else { return nil }
+            return SearchResult(id: "cask-" + name, name: name, description: "", tap: tap, isCask: true)
+        }
+    }
+    
+    private func parseCaskInfo(output: String, name: String) -> BrewPackage? {
+        let lines = output.components(separatedBy: .newlines)
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+        
+        var version = ""
+        var description = ""
+        var inDescriptionSection = false
+        
+        for line in lines {
+            if line.isEmpty { continue }
+            
+            // 从第一行提取版本: "==> name: version (flags)"
+            if line.hasPrefix("==> ") && line.contains(":") {
+                if line.lowercased().hasPrefix("==> \(name.lowercased()):") ||
+                   line.hasPrefix("==> \(name):") {
+                    let versionPart = line
+                        .replacingOccurrences(of: "==> ", with: "")
+                        .components(separatedBy: ":")
+                    if versionPart.count > 1 {
+                        let ver = versionPart[1]
+                            .trimmingCharacters(in: .whitespaces)
+                            .components(separatedBy: .whitespaces).first ?? ""
+                        version = ver
+                    }
+                }
+                inDescriptionSection = false
+                continue
+            }
+            
+            // 检测 Description 段落
+            if line.hasPrefix("==> Description") || line == "==> Description" {
+                inDescriptionSection = true
+                continue
+            }
+            
+            // 跳过其他段落标题和无关行
+            if line.hasPrefix("==> ") { inDescriptionSection = false; continue }
+            if line.hasPrefix("From:") || line.hasPrefix("https://") ||
+               line == "Not installed" || line.contains("Artifacts") ||
+               line.contains("Analytics") || line.contains("Caveats") ||
+               line.contains("Dependencies") {
+                inDescriptionSection = false
+                continue
+            }
+            
+            // 提取描述内容
+            if inDescriptionSection && description.isEmpty {
+                description = line
+            }
+        }
+        
+        return BrewPackage(name: name, version: version, description: description)
     }
     
     private func parsePackageInfo(output: String, name: String) -> BrewPackage? {
