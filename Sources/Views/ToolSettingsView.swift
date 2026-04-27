@@ -4,6 +4,7 @@ struct ToolSettingsView: View {
     @AppStorage("systemMetricsRefreshInterval") private var metricsInterval: TimeInterval = 5.0
     @AppStorage("systemProcessesRefreshInterval") private var processesInterval: TimeInterval = 5.0
     @AppStorage("systemPortsRefreshInterval") private var portsInterval: TimeInterval = 5.0
+    @ObservedObject private var loc = LocalizationManager.shared
 
     var body: some View {
         VStack(spacing: 0) {
@@ -13,7 +14,7 @@ struct ToolSettingsView: View {
                     .font(.title3)
                     .foregroundColor(.secondary)
 
-                Text("工具设置")
+                Text(L("settings.title"))
                     .font(.title2)
                     .fontWeight(.bold)
 
@@ -26,16 +27,52 @@ struct ToolSettingsView: View {
 
             ScrollView {
                 VStack(spacing: 20) {
+                    // 语言设置
+                    settingsSection(
+                        icon: "globe",
+                        title: L("settings.language"),
+                        description: L("settings.languageDesc")
+                    ) {
+                        HStack(spacing: 12) {
+                            ForEach(AppLanguage.allCases) { language in
+                                Button(action: {
+                                    loc.currentLanguage = language
+                                }) {
+                                    HStack(spacing: 8) {
+                                        Text(language.displayName)
+                                        if loc.currentLanguage == language {
+                                            Image(systemName: "checkmark")
+                                                .font(.caption)
+                                                .foregroundColor(.accentColor)
+                                        }
+                                    }
+                                    .frame(maxWidth: .infinity)
+                                    .padding(.vertical, 8)
+                                    .background(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .fill(loc.currentLanguage == language ? Color.accentColor.opacity(0.15) : Color(nsColor: .controlBackgroundColor))
+                                    )
+                                    .overlay(
+                                        RoundedRectangle(cornerRadius: 8)
+                                            .stroke(loc.currentLanguage == language ? Color.accentColor : Color.clear, lineWidth: 1)
+                                    )
+                                }
+                                .buttonStyle(.plain)
+                            }
+                        }
+                        .padding(.top, 8)
+                    }
+
                     // 系统监控刷新设置
                     settingsSection(
                         icon: "chart.bar",
-                        title: "系统监控",
-                        description: "配置系统监控各子模块的数据刷新频率"
+                        title: L("settings.systemMonitor"),
+                        description: L("settings.systemMonitorDesc")
                     ) {
                         settingsRow(
                             icon: "gauge",
-                            title: "系统指标",
-                            description: "CPU、内存、磁盘等硬件指标数据采集频率",
+                            title: L("settings.systemMetrics"),
+                            description: L("settings.systemMetricsDesc"),
                             interval: $metricsInterval
                         )
 
@@ -43,8 +80,8 @@ struct ToolSettingsView: View {
 
                         settingsRow(
                             icon: "list.bullet",
-                            title: "进程监控",
-                            description: "进程列表数据刷新频率",
+                            title: L("settings.processMonitor"),
+                            description: L("settings.processMonitorDesc"),
                             interval: $processesInterval
                         )
 
@@ -52,8 +89,8 @@ struct ToolSettingsView: View {
 
                         settingsRow(
                             icon: "network",
-                            title: "端口监控",
-                            description: "网络端口连接数据刷新频率",
+                            title: L("settings.portMonitor"),
+                            description: L("settings.portMonitorDesc"),
                             interval: $portsInterval
                         )
                     }
@@ -61,6 +98,7 @@ struct ToolSettingsView: View {
                 .padding(20)
             }
         }
+        .id(loc.currentLanguage)
     }
 
     // MARK: - 设置区块
@@ -118,12 +156,12 @@ struct ToolSettingsView: View {
 
             Spacer()
 
-            Picker("刷新间隔", selection: interval) {
-                Text("3秒").tag(3.0)
-                Text("5秒").tag(5.0)
-                Text("10秒").tag(10.0)
-                Text("30秒").tag(30.0)
-                Text("60秒").tag(60.0)
+            Picker(L("settings.refreshInterval"), selection: interval) {
+                Text(L("interval.3s")).tag(3.0)
+                Text(L("interval.5s")).tag(5.0)
+                Text(L("interval.10s")).tag(10.0)
+                Text(L("interval.30s")).tag(30.0)
+                Text(L("interval.60s")).tag(60.0)
             }
             .pickerStyle(.segmented)
             .frame(width: 200)

@@ -72,6 +72,7 @@
 		F9A3B7C1D4E85F02A6B83E10 /* NpmSourceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E7C4D2F8A1B93605C4D87E29 /* NpmSourceView.swift */; };
 		A1B2C3D4E5F68790ABCD1234 /* MavenService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2C3D4E5F678901ABCDEF012 /* MavenService.swift */; };
 		C3D4E5F67890ABCD12345678 /* MavenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D4E5F678901ABCDEF0123456 /* MavenView.swift */; };
+		F1A2B3C4D5E6F7890ABCDEF0 /* LocalizationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2F3A4B5C6D7E8901ABCDEF0 /* LocalizationManager.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -142,6 +143,7 @@
 		E7C4D2F8A1B93605C4D87E29 /* NpmSourceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NpmSourceView.swift; sourceTree = "<group>"; };
 		B2C3D4E5F678901ABCDEF012 /* MavenService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MavenService.swift; sourceTree = "<group>"; };
 		D4E5F678901ABCDEF0123456 /* MavenView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MavenView.swift; sourceTree = "<group>"; };
+		E2F3A4B5C6D7E8901ABCDEF0 /* LocalizationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationManager.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXGroup section */
@@ -189,6 +191,7 @@
 				1F2D1C3168633B6004929B0F /* RustupService.swift */,
 				23B07DD549E554375ECFE36A /* RVMService.swift */,
 				B2C3D4E5F678901ABCDEF012 /* MavenService.swift */,
+				E2F3A4B5C6D7E8901ABCDEF0 /* LocalizationManager.swift */,
 				91860FD6871E07EFEF9ED164 /* SystemService.swift */,
 				6F85758EDEF78052F13BE62C /* XcodeService.swift */,
 			);
@@ -412,6 +415,7 @@
 				32BF4904643BF8F0E05D9943 /* SystemView.swift in Sources */,
 				A1B2C3D4E5F68790ABCD1234 /* MavenService.swift in Sources */,
 				C3D4E5F67890ABCD12345678 /* MavenView.swift in Sources */,
+				F1A2B3C4D5E6F7890ABCDEF0 /* LocalizationManager.swift in Sources */,
 				B7A2DE17537002AF812D24E7 /* TapView.swift in Sources */,
 				E0E77CA6413DC48DA89DDF0E /* TifaApp.swift in Sources */,
 				19AB3C18A64199CF801FA500 /* ToolSettingsView.swift in Sources */,

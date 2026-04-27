@@ -327,6 +327,7 @@ enum MySQLTab: String, CaseIterable, Identifiable {
 
 struct ContentView: View {
     @StateObject private var homebrewService = HomebrewService.shared
+    @ObservedObject private var loc = LocalizationManager.shared
     @State private var selectedCategory: ToolCategory = .homebrew
     @State private var selectedHomebrewTab: HomebrewTab = .installed
     @State private var selectedRVMTab: RVMTab = .packages
@@ -360,13 +361,14 @@ struct ContentView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
         }
         .frame(minWidth: 1000, minHeight: 600)
+        .id(loc.currentLanguage)
         .overlay {
             if homebrewService.isLoading || RVMService.shared.isLoading || MySQLService.shared.isLoading || PyenvService.shared.isLoading || PostgresService.shared.isLoading || RedisService.shared.isLoading || NvmService.shared.isLoading || MongoDbService.shared.isLoading || RustupService.shared.isLoading || JenvService.shared.isLoading || GvmService.shared.isLoading {
                 LoadingOverlay(message: homebrewService.isLoading ? homebrewService.loadingMessage : (RVMService.shared.isLoading ? RVMService.shared.loadingMessage : (MySQLService.shared.isLoading ? MySQLService.shared.loadingMessage : (PyenvService.shared.isLoading ? PyenvService.shared.loadingMessage : (PostgresService.shared.isLoading ? PostgresService.shared.loadingMessage : (RedisService.shared.isLoading ? RedisService.shared.loadingMessage : (NvmService.shared.isLoading ? NvmService.shared.loadingMessage : (MongoDbService.shared.isLoading ? MongoDbService.shared.loadingMessage : (RustupService.shared.isLoading ? RustupService.shared.loadingMessage : (JenvService.shared.isLoading ? JenvService.shared.loadingMessage : GvmService.shared.loadingMessage))))))))))
             }
         }
-        .alert("错误", isPresented: .constant(homebrewService.lastError != nil)) {
-            Button("确定") {
+        .alert(L("common.error"), isPresented: .constant(homebrewService.lastError != nil)) {
+            Button(L("common.confirm")) {
                 homebrewService.lastError = nil
             }
         } message: {
@@ -382,7 +384,7 @@ struct ContentView: View {
                 ForEach(ToolCategory.grouped, id: \.group.id) { section in
                     Section {
                         ForEach(section.items) { category in
-                            Label(category.rawValue, systemImage: category.icon)
+                            Label(category.displayName, systemImage: category.icon)
                                 .tag(category)
                         }
                     } header: {
@@ -390,7 +392,7 @@ struct ContentView: View {
                             Image(systemName: section.group.icon)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
-                            Text(section.group.rawValue)
+                            Text(section.group.displayName)
                                 .font(.caption)
                                 .foregroundColor(.secondary)
                         }
@@ -406,7 +408,7 @@ struct ContentView: View {
     
     private var subSidebar: some View {
         VStack(spacing: 0) {
-            Text(selectedCategory.rawValue)
+            Text(selectedCategory.displayName)
                 .font(.headline)
                 .foregroundColor(.secondary)
                 .padding(.top, 12)
@@ -417,7 +419,7 @@ struct ContentView: View {
             if selectedCategory == .homebrew {
                 List(selection: $selectedHomebrewTab) {
                     ForEach(HomebrewTab.allCases) { tab in
-                        Label(tab.rawValue, systemImage: tab.icon)
+                        Label(tab.displayName, systemImage: tab.icon)
                             .tag(tab)
                     }
                 }
@@ -425,7 +427,7 @@ struct ContentView: View {
             } else if selectedCategory == .rvm {
                 List(selection: $selectedRVMTab) {
                     ForEach(RVMTab.allCases) { tab in
-                        Label(tab.rawValue, systemImage: tab.icon)
+                        Label(tab.displayName, systemImage: tab.icon)
                             .tag(tab)
                     }
                 }
@@ -433,7 +435,7 @@ struct ContentView: View {
             } else if selectedCategory == .mysql {
                 List(selection: $selectedMySQLTab) {
                     ForEach(MySQLTab.allCases) { tab in
-                        Label(tab.rawValue, systemImage: tab.icon)
+                        Label(tab.displayName, systemImage: tab.icon)
                             .tag(tab)
                     }
                 }
@@ -441,7 +443,7 @@ struct ContentView: View {
             } else if selectedCategory == .pyenv {
                 List(selection: $selectedPyenvTab) {
                     ForEach(PyenvTab.allCases) { tab in
-                        Label(tab.rawValue, systemImage: tab.icon)
+                        Label(tab.displayName, systemImage: tab.icon)
                             .tag(tab)
                     }
                 }
@@ -449,7 +451,7 @@ struct ContentView: View {
             } else if selectedCategory == .postgres {
                 List(selection: $selectedPostgresTab) {
                     ForEach(PostgresTab.allCases) { tab in
-                        Label(tab.rawValue, systemImage: tab.icon)
+                        Label(tab.displayName, systemImage: tab.icon)
                             .tag(tab)
                     }
                 }
@@ -457,7 +459,7 @@ struct ContentView: View {
             } else if selectedCategory == .redis {
                 List(selection: $selectedRedisTab) {
                     ForEach(RedisTab.allCases) { tab in
-                        Label(tab.rawValue, systemImage: tab.icon)
+                        Label(tab.displayName, systemImage: tab.icon)
                             .tag(tab)
                     }
                 }
@@ -465,7 +467,7 @@ struct ContentView: View {
             } else if selectedCategory == .mongodb {
                 List(selection: $selectedMongoDbTab) {
                     ForEach(MongoDbTab.allCases) { tab in
-                        Label(tab.rawValue, systemImage: tab.icon)
+                        Label(tab.displayName, systemImage: tab.icon)
                             .tag(tab)
                     }
                 }
@@ -473,7 +475,7 @@ struct ContentView: View {
             } else if selectedCategory == .nvm {
                 List(selection: $selectedNVMTab) {
                     ForEach(NVMTab.allCases) { tab in
-                        Label(tab.rawValue, systemImage: tab.icon)
+                        Label(tab.displayName, systemImage: tab.icon)
                             .tag(tab)
                     }
                 }
@@ -481,7 +483,7 @@ struct ContentView: View {
             } else if selectedCategory == .rustup {
                 List(selection: $selectedRustupTab) {
                     ForEach(RustupTab.allCases) { tab in
-                        Label(tab.rawValue, systemImage: tab.icon)
+                        Label(tab.displayName, systemImage: tab.icon)
                             .tag(tab)
                     }
                 }
@@ -489,7 +491,7 @@ struct ContentView: View {
             } else if selectedCategory == .jenv {
                 List(selection: $selectedJenvTab) {
                     ForEach(JenvTab.allCases) { tab in
-                        Label(tab.rawValue, systemImage: tab.icon)
+                        Label(tab.displayName, systemImage: tab.icon)
                             .tag(tab)
                     }
                 }
@@ -497,7 +499,7 @@ struct ContentView: View {
             } else if selectedCategory == .gvm {
                 List(selection: $selectedGvmTab) {
                     ForEach(GvmTab.allCases) { tab in
-                        Label(tab.rawValue, systemImage: tab.icon)
+                        Label(tab.displayName, systemImage: tab.icon)
                             .tag(tab)
                     }
                 }
@@ -505,7 +507,7 @@ struct ContentView: View {
             } else if selectedCategory == .system {
                 List(selection: $selectedSystemTab) {
                     ForEach(SystemTab.allCases) { tab in
-                        Label(tab.rawValue, systemImage: tab.icon)
+                        Label(tab.displayName, systemImage: tab.icon)
                             .tag(tab)
                     }
                 }
@@ -514,7 +516,7 @@ struct ContentView: View {
                 // 工具设置 - 单页面，无子菜单
                 VStack {
                     Spacer()
-                    Text("工具设置")
+                    Text(L("settings.title"))
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding()
@@ -523,7 +525,7 @@ struct ContentView: View {
             } else {
                 VStack {
                     Spacer()
-                    Text(selectedCategory == .env ? "环境变量管理" : (selectedCategory == .xcode ? "Xcode 管理" : "Hosts 文件管理"))
+                    Text(selectedCategory == .env ? L("sidebar.envManagement") : (selectedCategory == .xcode ? L("sidebar.xcodeManagement") : L("sidebar.hostsManagement")))
                         .font(.caption)
                         .foregroundColor(.secondary)
                         .padding()

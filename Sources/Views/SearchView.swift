@@ -145,7 +145,11 @@ struct SearchResultRow: View {
     
     private func installPackage() async {
         isInstalling = true
-        _ = await HomebrewService.shared.installPackage(result.name)
+        if result.isCask {
+            _ = await HomebrewService.shared.installCask(result.name)
+        } else {
+            _ = await HomebrewService.shared.installPackage(result.name)
+        }
         isInstalling = false
     }
 }
