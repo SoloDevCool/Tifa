@@ -449,6 +449,87 @@ class PyenvService: ObservableObject {
         }
     }
     
+    // MARK: - Pip 源管理
+    
+    /// 获取当前 pip 源
+    func getPipSource() async -> String {
+        let script = "export PATH=\"/opt/homebrew/bin:/usr/local/bin:$PATH\"; pip3 config get global.index-url 2>/dev/null || pip config get global.index-url 2>/dev/null"
+        let result: OperationResult = await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let process = Process()
+                let stdoutPipe = Pipe()
+                let stderrPipe = Pipe()
+                
+                process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+                process.arguments = ["-l", "-c", script]
+                process.environment = ProcessInfo.processInfo.environment
+                process.standardOutput = stdoutPipe
+                process.standardError = stderrPipe
+                
+                do {
+                    try process.run()
+                    process.waitUntilExit()
+                    let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+                    let stdout = String(data: stdoutData, encoding: .utf8) ?? ""
+                    continuation.resume(returning: .success(stdout))
+                } catch {
+                    continuation.resume(returning: .failure(error.localizedDescription))
+                }
+            }
+        }
+        
+        if case .success(let output) = result {
+            let url = output.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !url.isEmpty && url.hasPrefix("http") {
+                return url
+            }
+        }
+        
+        // 回退：直接读 pip.conf 文件
+        let home = NSHomeDirectory()
+        let pipConfPaths = [
+            "\(home)/.pip/pip.conf",
+            "\(home)/Library/Application Support/pip/pip.conf"
+        ]
+        for path in pipConfPaths {
+            if let content = try? String(contentsOfFile: path, encoding: .utf8) {
+                for line in content.components(separatedBy: .newlines) {
+                    let trimmed = line.trimmingCharacters(in: .whitespaces)
+                    if trimmed.hasPrefix("index-url") {
+                        let url = trimmed
+                            .replacingOccurrences(of: "index-url", with: "")
+                            .replacingOccurrences(of: "=", with: "")
+                            .trimmingCharacters(in: .whitespaces)
+                        return url
+                    }
+                }
+            }
+        }
+        
+        return ""
+    }
+    
+    /// 设置 pip 源（通过写入 ~/.pip/pip.conf）
+    func setPipSource(_ url: String) async -> OperationResult {
+        let home = NSHomeDirectory()
+        let pipDir = "\(home)/.pip"
+        let pipConfPath = "\(pipDir)/pip.conf"
+        let content = "[global]\nindex-url = \(url)\ntrusted-host = \(URL(string: url)?.host ?? "")\n"
+        
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                do {
+                    // 确保目录存在
+                    try FileManager.default.createDirectory(atPath: pipDir, withIntermediateDirectories: true)
+                    try content.write(toFile: pipConfPath, atomically: true, encoding: .utf8)
+                    continuation.resume(returning: .success("已写入 ~/.pip/pip.conf"))
+                } catch {
+                    continuation.resume(returning: .failure("写入失败: \(error.localizedDescription)"))
+                }
+            }
+        }
+    }
+    
     // MARK: - Python 版本管理
     
     /// 获取已安装的 Python 版本列表

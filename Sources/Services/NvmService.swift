@@ -402,6 +402,110 @@ class NvmService: ObservableObject {
         return "未知"
     }
     
+    // MARK: - NPM 源管理
+
+    /// 获取当前 npm registry
+    func getNpmRegistry() async -> String {
+        // 使用当前默认版本的 npm 来获取 registry
+        let defaultVer = await getDefaultVersion()
+        let npm = npmPath(for: defaultVer)
+
+        guard FileManager.default.fileExists(atPath: npm) else {
+            return ""
+        }
+
+        var env = nvmEnvironment
+        let versionBinDir = "\(nvmDir)/versions/node/\(defaultVer)/bin"
+        env["PATH"] = "\(versionBinDir):\(env["PATH"] ?? "")"
+
+        let result: OperationResult = await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async { [env, npm] in
+                let process = Process()
+                let stdoutPipe = Pipe()
+                let stderrPipe = Pipe()
+
+                process.executableURL = URL(fileURLWithPath: npm)
+                process.arguments = ["config", "get", "registry"]
+                process.environment = env
+                process.standardOutput = stdoutPipe
+                process.standardError = stderrPipe
+
+                do {
+                    try process.run()
+                    process.waitUntilExit()
+                    let stdout = String(data: stdoutPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+                    let stderr = String(data: stderrPipe.fileHandleForReading.readDataToEndOfFile(), encoding: .utf8) ?? ""
+
+                    if process.terminationStatus == 0 {
+                        continuation.resume(returning: .success(stdout))
+                    } else {
+                        continuation.resume(returning: .success(""))
+                    }
+                } catch {
+                    continuation.resume(returning: .success(""))
+                }
+            }
+        }
+
+        if case .success(let output) = result {
+            return output.trimmingCharacters(in: .whitespacesAndNewlines)
+        }
+        return ""
+    }
+
+    /// 从 ~/.npmrc 读取 registry
+    private func readNpmrcRegistry() -> String {
+        let npmrcPath = "\(NSHomeDirectory())/.npmrc"
+        guard let content = try? String(contentsOfFile: npmrcPath, encoding: .utf8) else {
+            return ""
+        }
+        for line in content.components(separatedBy: "\n") {
+            let trimmed = line.trimmingCharacters(in: .whitespaces)
+            if trimmed.hasPrefix("registry") {
+                let parts = trimmed.components(separatedBy: "=")
+                if parts.count >= 2 {
+                    return parts[1].trimmingCharacters(in: .whitespaces)
+                }
+            }
+        }
+        return ""
+    }
+
+    /// 设置 npm registry（直接写入 ~/.npmrc）
+    func setNpmRegistry(_ url: String) async -> OperationResult {
+        let home = NSHomeDirectory()
+        let npmrcPath = "\(home)/.npmrc"
+
+        var content = ""
+        if FileManager.default.fileExists(atPath: npmrcPath),
+           let existing = try? String(contentsOfFile: npmrcPath, encoding: .utf8) {
+            // 替换或添加 registry 行
+            var lines = existing.components(separatedBy: "\n")
+            var found = false
+            for i in lines.indices {
+                let trimmed = lines[i].trimmingCharacters(in: .whitespaces)
+                if trimmed.hasPrefix("registry") {
+                    lines[i] = "registry=\(url)"
+                    found = true
+                    break
+                }
+            }
+            if !found {
+                lines.append("registry=\(url)")
+            }
+            content = lines.joined(separator: "\n")
+        } else {
+            content = "registry=\(url)\n"
+        }
+
+        do {
+            try content.write(toFile: npmrcPath, atomically: true, encoding: .utf8)
+            return .success("已切换 npm 源到 \(url)")
+        } catch {
+            return .failure("写入 ~/.npmrc 失败: \(error.localizedDescription)")
+        }
+    }
+
     // MARK: - 私有方法
     
     private func updateLoadingState(message: String) {

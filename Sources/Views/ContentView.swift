@@ -157,6 +157,7 @@ enum RVMTab: String, CaseIterable, Identifiable {
 
 enum PyenvTab: String, CaseIterable, Identifiable {
     case packages = "Python 软件包"
+    case pipSource = "Pip 源"
     case source = "安装源"
     case settings = "设置"
 
@@ -165,6 +166,7 @@ enum PyenvTab: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .packages: return "shippingbox"
+        case .pipSource: return "diamond"
         case .source: return "globe"
         case .settings: return "gear"
         }
@@ -207,6 +209,7 @@ enum RedisTab: String, CaseIterable, Identifiable {
 
 enum NVMTab: String, CaseIterable, Identifiable {
     case packages = "NVM 软件包"
+    case npmSource = "NPM 源"
     case settings = "设置"
 
     var id: String { rawValue }
@@ -214,6 +217,7 @@ enum NVMTab: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .packages: return "shippingbox"
+        case .npmSource: return "diamond"
         case .settings: return "gear"
         }
     }
@@ -223,6 +227,7 @@ enum NVMTab: String, CaseIterable, Identifiable {
 
 enum JenvTab: String, CaseIterable, Identifiable {
     case versions = "Java 软件包"
+    case maven = "Maven"
     case settings = "设置"
 
     var id: String { rawValue }
@@ -230,6 +235,7 @@ enum JenvTab: String, CaseIterable, Identifiable {
     var icon: String {
         switch self {
         case .versions: return "cube"
+        case .maven: return "shippingbox"
         case .settings: return "gear"
         }
     }
@@ -576,6 +582,8 @@ struct ContentView: View {
             switch selectedPyenvTab {
             case .packages:
                 PythonPackagesView()
+            case .pipSource:
+                PipSourceView()
             case .source:
                 PyenvSourceView()
             case .settings:
@@ -606,6 +614,8 @@ struct ContentView: View {
             switch selectedNVMTab {
             case .packages:
                 NvmPackagesView()
+            case .npmSource:
+                NpmSourceView()
             case .settings:
                 NvmSettingsView()
             }
@@ -620,6 +630,8 @@ struct ContentView: View {
             switch selectedJenvTab {
             case .versions:
                 JenvPackagesView()
+            case .maven:
+                MavenView()
             case .settings:
                 JenvSettingsView()
             }
