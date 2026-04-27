@@ -166,7 +166,7 @@ class RVMService: ObservableObject {
     
     /// 执行安装脚本（通用）
     private func runInstallScript(script: String, onOutput: @escaping @MainActor (String) -> Void) async -> OperationResult {
-        let shell = "/bin/bash"
+        let shell = "/bin/zsh"
         let env = rvmEnvironment
         
         return await withCheckedContinuation { continuation in
@@ -350,6 +350,110 @@ class RVMService: ObservableObject {
         )
     }
     
+    // MARK: - Gem 源管理
+    
+    /// 获取当前 gem 源列表
+    func listGemSources() async -> [String] {
+        let home = NSHomeDirectory()
+        let script = "source \(home)/.rvm/scripts/rvm && gem sources 2>&1"
+        let result = await runGemCommand(script: script, timeout: 15)
+        if case .success(let output) = result {
+            return output.components(separatedBy: .newlines)
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { $0.hasPrefix("http://") || $0.hasPrefix("https://") }
+        }
+        return []
+    }
+    
+    /// 添加 gem 源（同时移除其他源，确保单源）
+    func addGemSource(_ url: String) async -> OperationResult {
+        return await switchGemSource(to: url)
+    }
+    
+    /// 移除 gem 源
+    func removeGemSource(_ url: String) async -> OperationResult {
+        let home = NSHomeDirectory()
+        let script = "source \(home)/.rvm/scripts/rvm && gem sources --remove \(url) 2>&1"
+        return await runGemCommand(script: script, timeout: 15)
+    }
+    
+    /// 清空所有 gem 源
+    func clearGemSources() async -> OperationResult {
+        let home = NSHomeDirectory()
+        let script = "source \(home)/.rvm/scripts/rvm && gem sources --clear 2>&1"
+        return await runGemCommand(script: script, timeout: 15)
+    }
+    
+    /// 原子化切换 gem 源（直接写入 ~/.gemrc，确保单源）
+    func switchGemSource(to url: String) async -> OperationResult {
+        let home = NSHomeDirectory()
+        let gemrcPath = "\(home)/.gemrc"
+        let content = "---\n:sources:\n- \(url)\n"
+        let script = "echo '\(content)' > \"\(gemrcPath)\" 2>&1 && gem sources 2>&1"
+        
+        let result = await runGemCommand(script: script, timeout: 15)
+        
+        if case .success(let output) = result {
+            let lines = output.components(separatedBy: .newlines)
+                .map { $0.trimmingCharacters(in: .whitespaces) }
+                .filter { $0.hasPrefix("http://") || $0.hasPrefix("https://") }
+            
+            if lines.count == 1 {
+                return .success("已切换到 \(url)")
+            } else {
+                // ~/.gemrc 已写入，但 gem sources 可能还读到系统默认源
+                return .success("已设置 ~/.gemrc 为 \(url)\n\n注意：gem sources 显示 \(lines.count) 个源，可能是系统默认源的影响。重启终端后生效。")
+            }
+        }
+        return result
+    }
+    
+    /// 执行 gem 相关命令（不触发全局 loading）
+    private func runGemCommand(script: String, timeout: TimeInterval) async -> OperationResult {
+        let env = ProcessInfo.processInfo.environment
+        return await withCheckedContinuation { continuation in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let process = Process()
+                let stdoutPipe = Pipe()
+                let stderrPipe = Pipe()
+                
+                process.executableURL = URL(fileURLWithPath: "/bin/zsh")
+                process.arguments = ["-l", "-c", script]
+                process.environment = env
+                process.standardOutput = stdoutPipe
+                process.standardError = stderrPipe
+                
+                let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global())
+                timer.schedule(deadline: .now() + timeout)
+                timer.setEventHandler {
+                    process.terminate()
+                }
+                timer.resume()
+                
+                do {
+                    try process.run()
+                    process.waitUntilExit()
+                    timer.cancel()
+                    
+                    let stdoutData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+                    let stderrData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
+                    let stdout = String(data: stdoutData, encoding: .utf8) ?? ""
+                    let stderr = String(data: stderrData, encoding: .utf8) ?? ""
+                    
+                    if process.terminationStatus == 0 {
+                        continuation.resume(returning: .success(stdout))
+                    } else {
+                        let errorMsg = stderr.isEmpty ? stdout : stderr
+                        continuation.resume(returning: .failure(errorMsg.isEmpty ? "命令执行失败" : errorMsg))
+                    }
+                } catch {
+                    timer.cancel()
+                    continuation.resume(returning: .failure("命令执行失败: \(error.localizedDescription)"))
+                }
+            }
+        }
+    }
+    
     // MARK: - 私有方法
     
     /// 执行原始 shell 命令（不依赖 RVM 环境）
@@ -358,7 +462,6 @@ class RVMService: ObservableObject {
         loadingMessage = message
         
         let env = ProcessInfo.processInfo.environment
-        _ = NSHomeDirectory()
         
         return await withCheckedContinuation { continuation in
             DispatchQueue.global(qos: .userInitiated).async { [weak self] in
@@ -366,13 +469,12 @@ class RVMService: ObservableObject {
                 let stdoutPipe = Pipe()
                 let stderrPipe = Pipe()
                 
-                process.executableURL = URL(fileURLWithPath: "/bin/bash")
+                process.executableURL = URL(fileURLWithPath: "/bin/zsh")
                 process.arguments = ["-l", "-c", script]
                 process.environment = env
                 process.standardOutput = stdoutPipe
                 process.standardError = stderrPipe
                 
-                // 超时处理
                 let timer = DispatchSource.makeTimerSource(queue: DispatchQueue.global())
                 timer.schedule(deadline: .now() + timeout)
                 timer.setEventHandler {
@@ -411,8 +513,6 @@ class RVMService: ObservableObject {
         }
     }
     
-    // MARK: - 私有方法
-    
     private func parseRubyList(output: String) -> [RubyVersion] {
         let lines = output.components(separatedBy: .newlines)
             .map { $0.trimmingCharacters(in: .whitespaces) }
@@ -450,7 +550,7 @@ class RVMService: ObservableObject {
     
     func executeCommand(arguments: [String]) async -> OperationResult {
         let home = NSHomeDirectory()
-        let shell = "/bin/bash"
+        let shell = "/bin/zsh"
         let script = "source \(home)/.rvm/scripts/rvm && rvm \(arguments.joined(separator: " "))"
         
         let env = rvmEnvironment
@@ -493,7 +593,7 @@ class RVMService: ObservableObject {
         loadingMessage = "正在执行 rvm \(arguments.joined(separator: " "))..."
         
         let home = NSHomeDirectory()
-        let shell = "/bin/bash"
+        let shell = "/bin/zsh"
         let script = "source \(home)/.rvm/scripts/rvm && rvm \(arguments.joined(separator: " "))"
         
         let env = rvmEnvironment

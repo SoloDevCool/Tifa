@@ -29,6 +29,7 @@
 		4746FE6BC3D2045A9F67AFCB /* JenvSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 41A4E3E464F238605F34C199 /* JenvSettingsView.swift */; };
 		502708469DA9003765D8EB0F /* MongoDbService.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEABF8AC4A428A93B58BF212 /* MongoDbService.swift */; };
 		54797A4C0FF1F3DE626E53F1 /* HostsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = B2E1C707E81839717DE4697F /* HostsView.swift */; };
+		587CAEEEAAF0CC8E3AB3E147 /* GemSourceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0C31E544607FEBBF7CB1A194 /* GemSourceView.swift */; };
 		63FAFB2D7A0F1D63D93933BD /* RubyVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95B20BD639F829A4F88F155D /* RubyVersion.swift */; };
 		6551B4CB69E93FC5FCF37F50 /* XcodeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 25CE128F2494D66C03E7FA6D /* XcodeView.swift */; };
 		6AA795126BD38BDAB344A106 /* SystemService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 91860FD6871E07EFEF9ED164 /* SystemService.swift */; };
@@ -75,6 +76,7 @@
 		089AB75A902D58D3175D6D86 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
 		09C6A6525E7ACBF263651F2D /* RustupSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RustupSettingsView.swift; sourceTree = "<group>"; };
 		0BBD720DF562806B52AD56CD /* CaskView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CaskView.swift; sourceTree = "<group>"; };
+		0C31E544607FEBBF7CB1A194 /* GemSourceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GemSourceView.swift; sourceTree = "<group>"; };
 		1ADF9AB1EC38BD6F9598CF7C /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
 		1F2D1C3168633B6004929B0F /* RustupService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RustupService.swift; sourceTree = "<group>"; };
 		23B07DD549E554375ECFE36A /* RVMService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RVMService.swift; sourceTree = "<group>"; };
@@ -220,6 +222,7 @@
 				0BBD720DF562806B52AD56CD /* CaskView.swift */,
 				1ADF9AB1EC38BD6F9598CF7C /* ContentView.swift */,
 				E8C1184279B38E238CD7025E /* EnvView.swift */,
+				0C31E544607FEBBF7CB1A194 /* GemSourceView.swift */,
 				D0C840A9F5FFCBB0B0537C81 /* GvmPackagesView.swift */,
 				DF10B8DD45C3AC56C4671D93 /* GvmSettingsView.swift */,
 				B2E1C707E81839717DE4697F /* HostsView.swift */,
@@ -346,6 +349,7 @@
 				B269D8F628B066B9F9A3F610 /* EnvService.swift in Sources */,
 				14409D5F0A27098E3599F267 /* EnvView.swift in Sources */,
 				FA367B2E7D617BEB77BF8521 /* FlowLayout.swift in Sources */,
+				587CAEEEAAF0CC8E3AB3E147 /* GemSourceView.swift in Sources */,
 				878EAFF23C396C97F22A4486 /* GvmPackagesView.swift in Sources */,
 				AFC3811B6EB23F89E757501F /* GvmService.swift in Sources */,
 				B1D19D3867EBF7255D2150EE /* GvmSettingsView.swift in Sources */,
