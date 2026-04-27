@@ -370,14 +370,6 @@ struct ContentView: View {
     
     private var categorySidebar: some View {
         VStack(spacing: 0) {
-            Text("工具")
-                .font(.headline)
-                .foregroundColor(.secondary)
-                .padding(.top, 12)
-                .padding(.bottom, 8)
-            
-            Divider()
-            
             List(selection: $selectedCategory) {
                 ForEach(ToolCategory.grouped, id: \.group.id) { section in
                     Section {
